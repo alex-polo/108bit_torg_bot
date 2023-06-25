@@ -1,0 +1,6 @@
+2023-06-24 23:23:35 | ERROR | __main__ | file:start.py | line:52 - name 'main' is not defined ", level="ERROR
+2023-06-24 23:23:35 | ERROR | __main__ | file:start.py | line:53 - Traceback (most recent call last):
+  File "D:\dev\108bit\108bit_torg_bot\start.py", line 48, in <module>
+    main.run(application_directory=application_directory)
+NameError: name 'main' is not defined
+ ", level="ERROR
