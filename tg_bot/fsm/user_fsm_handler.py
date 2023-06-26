@@ -8,7 +8,7 @@ from loguru import logger
 
 from tg_bot.fsm.classes import FSMAnnouncement
 from tg_bot.keyboards import get_main_keyboard, get_fsm_start_keyboard, get_fsm_publish_keyboard, \
-    get_fsm_type_task_keyboard
+    get_fsm_type_task_keyboard, get_fsm_city_keyboard, back_button_text
 from tg_bot.main import get_dispatcher
 
 dispatcher: Dispatcher = get_dispatcher()
@@ -16,6 +16,17 @@ dispatcher: Dispatcher = get_dispatcher()
 
 async def choose_an_answer_from_the_menu(message: Message):
     return await message.reply('Выберите ответ в меню', reply_markup=get_fsm_start_keyboard())
+
+
+# @dispatcher.message_handler(lambda message: not message.text == 'Поехали!', state=FSMAnnouncement.start)
+# async def cm_start_invalid(message: types.Message):
+#     try:
+#         logger.info(f'Invalid cmd_start FSM, user id: {message.from_user.id}')
+#         return choose_an_answer_from_the_menu(message=message)
+#     except Exception as error:
+#         logger.error(error)
+#         logger.error(traceback.format_exc(limit=None, chain=True))
+#         await exception_handler(message=message)
 
 
 @dispatcher.message_handler(Text('Создать объявление!'))
@@ -36,23 +47,53 @@ async def cm_start(message: Message, state: FSMContext):
 
 
 #########################################   START   ####################################################
-@dispatcher.message_handler(lambda message: not message.text == 'Поехали!', state=FSMAnnouncement.start)
-async def cm_start_invalid(message: types.Message):
-    logger.info(f'Invalid load start FSM, user id: {message.from_user.id}')
-    return choose_an_answer_from_the_menu(message=message)
-
-
 async def load_start(message: Message, state: FSMContext):
     logger.info(f'Load start FSM, user id: {message.from_user.id}')
     await FSMAnnouncement.next()
-    await message.reply('Из какого вы города?', reply_markup=types.ReplyKeyboardRemove())
+    await message.reply('Из какого вы города?', reply_markup=get_fsm_city_keyboard())
+
+
+@dispatcher.message_handler(state='*', commands='Я передумал')
+@dispatcher.message_handler(Text(equals='Я передумал', ignore_case=True), state='*')
+async def cancel_handler(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+
+    logger.info(f'Cancelling state: {current_state}')
+    await state.finish()
+    await message.reply('А вы знаете, '
+                        'что в Дагестане на автомобилях нет задней передачи? '
+                        'Потому, что нормальные пацаны никогда не дают заднюю!',
+                        reply_markup=get_main_keyboard())
+
+
+@dispatcher.message_handler(lambda message: not message.text == 'Поехали!', state=FSMAnnouncement.start)
+async def cm_start_invalid(message: types.Message):
+    try:
+        logger.info(f'Invalid load start FSM, user id: {message.from_user.id}')
+        return choose_an_answer_from_the_menu(message=message)
+    except Exception as error:
+        logger.error(error)
+        logger.error(traceback.format_exc(limit=None, chain=True))
+        await exception_handler(message=message)
 
 
 #########################################   LOAD CITY   ####################################################
+
+@dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.city)
+async def load_city_back_button(message: types.Message, state: FSMContext):
+    logger.info(f'Press back button for city menu, user id: {message.from_user.id}')
+    await state.set_state(FSMAnnouncement.start)
+    await FSMAnnouncement.start.set()
+    return await cm_start(message=message, state=state)
+
+
 @dispatcher.message_handler(lambda message: not len(message.text) > 2, state=FSMAnnouncement.city)
 async def load_city_ignore(message: types.Message):
     logger.info(f'Invalid load city, city: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Населенный пункт введен некорректно.\nИз какого вы города?')
+    return await message.reply('Населенный пункт введен некорректно.\nИз какого вы города?',
+                               reply_markup=get_fsm_city_keyboard())
 
 
 async def load_city(message: Message, state: FSMContext):
@@ -64,6 +105,8 @@ async def load_city(message: Message, state: FSMContext):
     await FSMAnnouncement.next()
     await message.answer(f'Ваш город: {city}.\n'
                          f'Какая у вас задача?', reply_markup=get_fsm_type_task_keyboard())
+
+#########################################   LOAD TYPE TASK   ####################################################
 
 
 #########################################   LOAD PUBLISH   ####################################################
@@ -81,33 +124,16 @@ async def publish(message: Message, state: FSMContext):
 
 
 async def finish(message: Message, state: FSMContext):
-    await cm_start(message=message, state=state)
-    # await state.finish()
-    # await message.answer('Ваше объявление отправлено.', reply_markup=get_main_keyboard())
-    # print(type(await state.get_state()))
-
-
-#########################################   CANCELEDED   ####################################################
-@dispatcher.message_handler(state='*', commands='Я передумал')
-@dispatcher.message_handler(Text(equals='Я передумал', ignore_case=True), state='*')
-async def cancel_handler(message: Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state is None:
-        return
-
-    logger.info(f'Cancelling state: {current_state}')
+    # await cm_start(message=message, state=state)
     await state.finish()
-    await message.reply('А вы знаете, '
-                        'что в Дагестане на автомобилях нет задней передачи? '
-                        'Потому что нормальные пацаны никогда не дают заднюю!',
-                        reply_markup=get_main_keyboard())
+    await message.answer('Ваше объявление отправлено.', reply_markup=get_main_keyboard())
+    print(type(await state.get_state()))
 
 
 #########################################   EXCEPTION   ####################################################
-async def exception_handler(message: Message, state: FSMContext):
-    current_state = await state.get_state()
-    logger.error(f'Exception state: {current_state}')
-    await state.reset_state()
+async def exception_handler(message: Message, state: FSMContext = None):
+    if state is not None:
+        await state.reset_state()
     await message.reply('Ууууупппс, произошла ошибка, попробуйте еще раз', reply_markup=get_main_keyboard())
 
 
@@ -115,7 +141,7 @@ async def exception_handler(message: Message, state: FSMContext):
 #     print(state.proxy())
 
 
-def register_fsm(dp: Dispatcher, cmd: str):
+def register_fsm(dp: Dispatcher):
     dp.register_message_handler(cm_start, state=None)
     dp.register_message_handler(load_start, state=FSMAnnouncement.start)
     dp.register_message_handler(cancel_handler, commands=['Я передумал'], state='*')
@@ -123,4 +149,4 @@ def register_fsm(dp: Dispatcher, cmd: str):
     dp.register_message_handler(publish, state=FSMAnnouncement.publish)
     dp.register_message_handler(finish, state=FSMAnnouncement.finish)
 
-    dp.register_message_handler(fsm_echo, state="*", content_types=types.ContentTypes.ANY)
+    # dp.register_message_handler(fsm_echo, state="*", content_types=types.ContentTypes.ANY)

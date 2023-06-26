@@ -12,7 +12,7 @@ async def user_start(message: Message, state: FSMContext):
 
 
 def register_user(dp: Dispatcher):
-    register_fsm(dp=dp, cmd="Создать объявление!")
+    register_fsm(dp=dp)
     dp.register_message_handler(user_start, commands=["start"], state="*")
     # dp.register_message_handler(cm_start, state=None)
     # dp.register_message_handler(cm_start, commands=["Создать объявление!"], state=None)
