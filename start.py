@@ -4,9 +4,9 @@ import traceback
 
 from loguru import logger
 
-from tgbot.config import load_logging_config, LoggerConfig, load_config
+from config import load_logging_config, LoggerConfig, load_config
 
-import main
+import tg_bot
 
 
 def configure_logger(logger_config: LoggerConfig) -> None:
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
         # Запуск основной программы
         config = load_config()
-        main.run(config=config)
+        tg_bot.run(config=config)
     except (KeyboardInterrupt, SystemExit):
         logger.error("Bot stopped!")
     except Exception as ex:

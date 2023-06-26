@@ -3,7 +3,7 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 
 class FSMAnnouncement(StatesGroup):
     start = State()
-    # city = State()
+    city = State()
     # type_task = State()
     # type_equipment_consumables = State()
     # vendor = State()
@@ -18,4 +18,5 @@ class FSMAnnouncement(StatesGroup):
     # details = State()
     # photo = State()
     # price_list = State()
-    # publish = State()
+    publish = State()
+    finish = State()
