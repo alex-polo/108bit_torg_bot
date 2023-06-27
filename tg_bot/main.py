@@ -1,17 +1,19 @@
 import asyncio
 from typing import Optional
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
-
+from loguru import logger
 # from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
+import tg_bot.service
+
 from config import TgBot
+from tg_bot import service
 from tg_bot.filters.admin import AdminFilter
 from tg_bot.handlers.echo import register_echo
 from tg_bot.middlewares.environment import EnvironmentMiddleware
-from loguru import logger
 
 _messages_queue: asyncio.Queue = Optional[None]
 _bot: Bot = Optional[None]
@@ -37,6 +39,11 @@ def register_all_handlers(dp: Dispatcher):
 
 
 async def _on_startup(dp) -> None:
+    await dp.bot.set_my_commands([
+        types.BotCommand("start", "Запустить бота"),
+        types.BotCommand("post_ad", 'Опубликовать объявление'),
+        ],
+        scope=types.BotCommandScopeDefault())
     pass
 
 
@@ -59,6 +66,7 @@ def main(config: TgBot):
     from tg_bot.handlers.user import register_user
     register_user(dp=_dispatcher)
     register_echo(dp=_dispatcher)
+    service.registry_mailing_service(bot=_bot, channels_ids=config.channel_id)
 
     asyncio.set_event_loop(asyncio.new_event_loop())
     executor.start_polling(dispatcher=_dispatcher,

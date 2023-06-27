@@ -3,4 +3,6 @@ from tg_bot.keyboards.fsm_user_keyboard import get_fsm_start_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import get_fsm_type_task_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import get_fsm_publish_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import get_fsm_city_keyboard
+from tg_bot.keyboards.fsm_user_keyboard import get_fsm_type_equipment_consumables_keyboard
+from tg_bot.keyboards.fsm_user_keyboard import get_fsm_vendor_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import back_button_text
