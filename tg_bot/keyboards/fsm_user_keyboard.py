@@ -62,3 +62,20 @@ def get_fsm_salesman_keyboard() -> ReplyKeyboardMarkup:
     keyboard.insert(KeyboardButton(text='Частное лицо'))
     keyboard.row(KeyboardButton(text=back_button_text))
     return keyboard
+
+
+def get_fsm_payment_type_keyboard() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    keyboard.insert(KeyboardButton(text='Наличные')),
+    keyboard.insert(KeyboardButton(text='Безналичные'))
+    keyboard.insert(KeyboardButton(text='Нал/Безнал'))
+    keyboard.row(KeyboardButton(text=back_button_text))
+    return keyboard
+
+
+def get_fsm_sending_to_another_city_keyboard() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    keyboard.insert(KeyboardButton(text='Да')),
+    keyboard.insert(KeyboardButton(text='Нет'))
+    keyboard.row(KeyboardButton(text=back_button_text))
+    return keyboard

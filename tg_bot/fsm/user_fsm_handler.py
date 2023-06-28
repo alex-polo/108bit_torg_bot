@@ -17,7 +17,7 @@ from tg_bot.keyboards import (
     get_fsm_type_equipment_consumables_keyboard,
     get_fsm_back_button_keyboard,
     get_fsm_condition_keyboard,
-    get_fsm_salesman_keyboard
+    get_fsm_salesman_keyboard, get_fsm_payment_type_keyboard, get_fsm_sending_to_another_city_keyboard
 )
 
 dispatcher: Dispatcher = get_dispatcher()
@@ -221,7 +221,7 @@ async def load_count_ignore(message: types.Message, state: FSMContext):
 
 @exception_handler
 async def load_count(message: Message, state: FSMContext):
-    logger.info(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
+    logger.info(f'Load count, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             count = message.text
@@ -238,14 +238,14 @@ async def load_count(message: Message, state: FSMContext):
 # ---------------------------------------------   LOAD CONDITION   -------------------------------------------------
 @exception_handler
 async def load_condition_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Неверно указано состояние.\nУкажите количество единиц (число):',
-                               reply_markup=get_fsm_back_button_keyboard())
+    logger.info(f'Invalid load condition, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Неверно указано состояние.\nВыберите один из пунктов меню:',
+                               reply_markup=get_fsm_condition_keyboard())
 
 
 @exception_handler
 async def load_condition(message: Message, state: FSMContext):
-    logger.info(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
+    logger.info(f'Load condition, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             condition = message.text
@@ -256,6 +256,103 @@ async def load_condition(message: Message, state: FSMContext):
     await FSMAnnouncement.next()
     await message.answer(f'Состояние: {condition}.\n\nВы представитель компании или частное лицо?:',
                          reply_markup=get_fsm_salesman_keyboard())
+
+
+# ---------------------------------------------   LOAD SALESMAN   -------------------------------------------------
+
+@exception_handler
+async def load_salesman_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid salesman count, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Неверно указан представитель.\nВыберите один из пунктов меню:',
+                               reply_markup=get_fsm_salesman_keyboard())
+
+
+@exception_handler
+async def load_salesman(message: Message, state: FSMContext):
+    logger.info(f'Load salesman, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            salesman = message.text
+            data['salesman'] = salesman
+        else:
+            salesman = data['salesman']
+
+    await FSMAnnouncement.next()
+    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость (число в рублях):',
+                         reply_markup=get_fsm_back_button_keyboard())
+
+
+# ---------------------------------------------   LOAD PRICE   -------------------------------------------------
+@exception_handler
+async def load_price_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid price count, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Неверно указана стоимость.\nУкажите число в рублях:',
+                               reply_markup=get_fsm_back_button_keyboard())
+
+
+@exception_handler
+async def load_price(message: Message, state: FSMContext):
+    logger.info(f'Load price, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            price = message.text
+            data['price'] = price
+        else:
+            price = data['price']
+
+    await FSMAnnouncement.next()
+    await message.answer(f'Указана стоимость: {price} руб.\n\nУкажите тип оплаты:',
+                         reply_markup=get_fsm_payment_type_keyboard())
+
+
+# ---------------------------------------------   LOAD PAYMENT TYPE   -------------------------------------------------
+@exception_handler
+async def load_payment_type_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid payment type, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Укажите возможность доставки:',
+                               reply_markup=get_fsm_payment_type_keyboard())
+
+
+@exception_handler
+async def load_payment_type(message: Message, state: FSMContext):
+    logger.info(f'Load payment type, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            payment_type = message.text
+            data['payment_type'] = payment_type
+        else:
+            payment_type = data['payment_type']
+
+    await FSMAnnouncement.next()
+    await message.answer(f'Выбран тип оплаты: {payment_type}.\n\nЕсть ли отправка в другой город?:',
+                         reply_markup=get_fsm_sending_to_another_city_keyboard())
+
+
+# ----------------------------------   LOAD SENDING TO ANOTHER CITY   ---------------------------------------
+@exception_handler
+async def load_sending_to_another_city_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid sending_to_another_city, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Укажите возможность доставки:',
+                               reply_markup=get_fsm_sending_to_another_city_keyboard())
+
+
+@exception_handler
+async def load_sending_to_another_city(message: Message, state: FSMContext):
+    logger.info(f'Load sending_to_another_city, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            if data['type_task'] == 'Купить':
+                pass
+            else:
+                sending_to_another_city = message.text
+                data['sending_to_another_city'] = sending_to_another_city
+        else:
+                sending_to_another_city = data['sending_to_another_city']
+
+            await FSMAnnouncement.next()
+            await message.answer(f'Возможность доставки в другой город: {sending_to_another_city}.'
+                         f'\n\nУкажите электронную почту для связи?:',
+                         reply_markup=get_fsm_sending_to_another_city_keyboard())
 
 
 # ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
@@ -310,7 +407,8 @@ def register_fsm(dp: Dispatcher):
                                                 message.text == back_button_text,
                                 content_types=types.ContentTypes.TEXT,
                                 state=FSMAnnouncement.type_equipment_consumables)
-    dp.register_message_handler(load_type_equipment_consumables_ignore, state=FSMAnnouncement.type_equipment_consumables)
+    dp.register_message_handler(load_type_equipment_consumables_ignore,
+                                state=FSMAnnouncement.type_equipment_consumables)
 
     dp.register_message_handler(load_vendor,
                                 lambda message: len(message.text) > 2,
@@ -324,6 +422,28 @@ def register_fsm(dp: Dispatcher):
                                 lambda message: message.text == 'Новое' or message.text == 'Б/У',
                                 state=FSMAnnouncement.condition)
     dp.register_message_handler(load_condition_ignore, state=FSMAnnouncement.condition)
+
+    dp.register_message_handler(load_salesman,
+                                lambda message: message.text == 'Компания' or message.text == 'Частное лицо',
+                                state=FSMAnnouncement.salesman)
+    dp.register_message_handler(load_salesman_ignore, state=FSMAnnouncement.salesman)
+
+    dp.register_message_handler(load_price, lambda message: message.text.isdigit(), state=FSMAnnouncement.price)
+    dp.register_message_handler(load_price_ignore, state=FSMAnnouncement.price)
+
+    dp.register_message_handler(load_payment_type,
+                                lambda message: message.text == 'Наличные' or
+                                                message.text == 'Безналичные' or
+                                                message.text == 'Нал/Безнал',
+                                state=FSMAnnouncement.payment_type)
+    dp.register_message_handler(load_payment_type_ignore, state=FSMAnnouncement.payment_type)
+
+    dp.register_message_handler(load_sending_to_another_city,
+                                lambda message: message.text == 'Да' or
+                                                message.text == 'Нет',
+                                state=FSMAnnouncement.sending_to_another_city)
+    dp.register_message_handler(load_sending_to_another_city_ignore, state=FSMAnnouncement.sending_to_another_city)
+
 
     # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
     # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
