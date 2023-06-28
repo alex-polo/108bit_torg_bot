@@ -13,18 +13,20 @@ from tg_bot.keyboards import (
     get_fsm_start_keyboard,
     get_fsm_publish_keyboard,
     get_fsm_type_task_keyboard,
-    get_fsm_city_keyboard,
     back_button_text,
     get_fsm_type_equipment_consumables_keyboard,
-    get_fsm_vendor_keyboard
+    get_fsm_back_button_keyboard,
+    get_fsm_condition_keyboard,
+    get_fsm_salesman_keyboard
 )
 
 dispatcher: Dispatcher = get_dispatcher()
 
 
 # ---------------------------------------------   BACK BUTTON   -------------------------------------------------
-@exception_handler
+
 # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
+@exception_handler
 async def event_back_button(message: Message, state: FSMContext):
     current_state = str(await state.get_state())
     logger.info(f'Press back button, user id: {message.from_user.id}, current state: {current_state}')
@@ -51,12 +53,22 @@ async def event_back_button(message: Message, state: FSMContext):
     elif current_state == 'FSMAnnouncement:count':
         await state.set_state(FSMAnnouncement.type_equipment_consumables)
         await FSMAnnouncement.type_equipment_consumables.set()
-        return await load_type_equipment_consumables_ignore(message=message, state=state)
+        return await load_type_equipment_consumables(message=message, state=state)
 
     elif current_state == 'FSMAnnouncement:condition':
         await state.set_state(FSMAnnouncement.vendor)
         await FSMAnnouncement.vendor.set()
         return await load_vendor(message=message, state=state)
+
+    """
+    start = State()
+    city = State()
+    type_task = State()
+    type_equipment_consumables = State()
+    vendor = State()
+    count = State()
+    condition = State()
+    """
 
 
 # count
@@ -68,7 +80,7 @@ async def choose_an_answer_from_the_menu(message: Message, state: FSMContext):
 @exception_handler
 async def cm_start(message: Message, state: FSMContext):
     logger.info(f'Start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
-    await state.reset_state()
+    # await state.reset_state()
     await FSMAnnouncement.start.set()
     await message.answer('Привествую!\nЯ задам вам несколько вопросов и помогу правильно сформировать объявление.',
                          reply_markup=get_fsm_start_keyboard())
@@ -79,7 +91,7 @@ async def cm_start(message: Message, state: FSMContext):
 async def load_start(message: Message, state: FSMContext):
     logger.info(f'Load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
     await FSMAnnouncement.next()
-    await message.answer('Из какого вы города?', reply_markup=get_fsm_city_keyboard())
+    await message.answer('Из какого вы города?', reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
@@ -110,18 +122,22 @@ async def cm_start_invalid(message: types.Message, state: FSMContext):
 async def load_city_ignore(message: types.Message, state: FSMContext):
     logger.info(
         f'Invalid load city, state: {await state.get_state()}, city: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Населенный пункт введен некорректно.\nИз какого вы города?',
-                               reply_markup=get_fsm_city_keyboard())
+    return await message.reply('Населенный пункт введен некорректно.\n\nИз какого вы города?',
+                               reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_city(message: Message, state: FSMContext):
     logger.info(f'Load city, state: {await state.get_state()}, city: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        data['city'] = message.text
+        if message.text != back_button_text:
+            city = message.text.title()
+            data['city'] = city
+        else:
+            city = data['city']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Ваш город: {message.text}.\n'
+    await message.answer(f'Ваш город: {city}.\n\n'
                          f'Какая у вас задача?', reply_markup=get_fsm_type_task_keyboard())
 
 
@@ -136,10 +152,14 @@ async def load_type_task_ignore(message: types.Message, state: FSMContext):
 async def load_type_task(message: Message, state: FSMContext):
     logger.info(f'Load type task, type task: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        data['type_task'] = message.text
+        if message.text != back_button_text:
+            type_task = message.text.split(' ')[-1].title()
+            data['type_task'] = type_task
+        else:
+            type_task = data['type_task']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Вы хотите: {message.text}.\n\n'
+    await message.answer(f'Вы хотите: {type_task}.\n\n'
                          f'Какой тип оборудования/расходных материалов вы предлагаете/ищете?',
                          reply_markup=get_fsm_type_equipment_consumables_keyboard())
 
@@ -155,12 +175,16 @@ async def load_type_equipment_consumables_ignore(message: types.Message, state: 
 async def load_type_equipment_consumables(message: Message, state: FSMContext):
     logger.info(f'Load type equipment consumables, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        data['type_equipment_consumables'] = message.text
+        if message.text != back_button_text:
+            type_equipment_consumables = message.text
+            data['type_equipment_consumables'] = type_equipment_consumables
+        else:
+            type_equipment_consumables = data['type_equipment_consumables']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Тип оборудования/расходных материалов: {message.text}.\n\n'
+    await message.answer(f'Тип оборудования/расходных материалов:\n{type_equipment_consumables}.\n\n'
                          f'Укажите производителя:',
-                         reply_markup=get_fsm_vendor_keyboard())
+                         reply_markup=get_fsm_back_button_keyboard())
 
 
 # --------------------------------------------   LOAD VENDOR   ---------------------------------------------------
@@ -168,68 +192,79 @@ async def load_type_equipment_consumables(message: Message, state: FSMContext):
 async def load_vendor_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load vendor, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Некорректно указан производитель.\nУкажите производителя:',
-                               reply_markup=get_fsm_vendor_keyboard())
+                               reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_vendor(message: Message, state: FSMContext):
     logger.info(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        data['type_equipment_consumables'] = message.text
+        if message.text != back_button_text:
+            vendor = message.text
+            data['vendor'] = vendor
+        else:
+            vendor = data['vendor']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Производитель: {message.text}.\n\n'
+    await message.answer(f'Производитель: {vendor}.\n\n'
                          f'Укажите количество единиц (число):',
-                         reply_markup=get_fsm_vendor_keyboard())
+                         reply_markup=get_fsm_back_button_keyboard())
 
 
 # --------------------------------------------   LOAD COUNT   ---------------------------------------------------
 @exception_handler
-async def load_count_ignore(message: types.Message):
+async def load_count_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Некорректно указано количество.\nУкажите количество единиц (число):',
-                               reply_markup=get_fsm_vendor_keyboard())
+    return await message.reply('Некорректно указано количество.\n\nУкажите количество единиц (число):',
+                               reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_count(message: Message, state: FSMContext):
     logger.info(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        data['type_equipment_consumables'] = message.text
+        if message.text != back_button_text:
+            count = message.text
+            data['count'] = count
+        else:
+            count = data['count']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Указанное количество: {message.text}.\n\n'
-                         f'Укажите состояние::',
-                         reply_markup=get_fsm_vendor_keyboard())
+    await message.answer(f'Указанное количество: {count}.\n\n'
+                         f'Укажите состояние:',
+                         reply_markup=get_fsm_condition_keyboard())
 
 
-#########################################   LOAD condition   ####################################################
+# ---------------------------------------------   LOAD CONDITION   -------------------------------------------------
 @exception_handler
-async def load_count_ignore(message: types.Message):
+async def load_condition_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Некорректно указано количество.\nУкажите количество единиц (число):',
-                               reply_markup=get_fsm_vendor_keyboard())
+    return await message.reply('Неверно указано состояние.\nУкажите количество единиц (число):',
+                               reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
-async def load_count(message: Message, state: FSMContext):
+async def load_condition(message: Message, state: FSMContext):
     logger.info(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        data['type_equipment_consumables'] = message.text
+        if message.text != back_button_text:
+            condition = message.text
+            data['condition'] = condition
+        else:
+            condition = data['condition']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Производитель: {message.text}.\n\n'
-                         f'Укажите количество единиц (число):',
-                         reply_markup=get_fsm_vendor_keyboard())
+    await message.answer(f'Состояние: {condition}.\n\nВы представитель компании или частное лицо?:',
+                         reply_markup=get_fsm_salesman_keyboard())
 
 
-#########################################   LOAD PUBLISH   ####################################################
+# ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
 @exception_handler
 async def publish(message: Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['type_task'] = message.text
+    # async with state.proxy() as data:
+    #     data['type_task'] = message.text
 
-    raise Exception('sssssssssssssssss')
+    # raise Exception('sssssssssssssssss')
 
     async with state.proxy() as data:
         await FSMAnnouncement.next()
@@ -237,6 +272,7 @@ async def publish(message: Message, state: FSMContext):
                              reply_markup=get_fsm_publish_keyboard())
 
 
+# ---------------------------------------------   FSM FINISH   -------------------------------------------------
 @exception_handler
 async def finish(message: Message, state: FSMContext):
     # await cm_start(message=message, state=state)
@@ -244,6 +280,7 @@ async def finish(message: Message, state: FSMContext):
     await message.answer('Ваше объявление отправлено.', reply_markup=get_main_keyboard())
 
 
+# ---------------------------------------------   REGISTRY FSM   -------------------------------------------------
 def register_fsm(dp: Dispatcher):
     logger.info('Registration FSMAnnouncement handlers for user')
 
@@ -269,11 +306,11 @@ def register_fsm(dp: Dispatcher):
                                                 message.text == 'Автоматика и КИПиА' or
                                                 message.text == 'Электрика' or
                                                 message.text == 'Телеком и связь' or
-                                                message.text == 'Сервера, ПК, комплектующие',
+                                                message.text == 'Сервера, ПК, комплектующие' or
+                                                message.text == back_button_text,
                                 content_types=types.ContentTypes.TEXT,
                                 state=FSMAnnouncement.type_equipment_consumables)
-    dp.register_message_handler(load_type_equipment_consumables_ignore,
-                                state=FSMAnnouncement.type_equipment_consumables)
+    dp.register_message_handler(load_type_equipment_consumables_ignore, state=FSMAnnouncement.type_equipment_consumables)
 
     dp.register_message_handler(load_vendor,
                                 lambda message: len(message.text) > 2,
@@ -282,6 +319,11 @@ def register_fsm(dp: Dispatcher):
 
     dp.register_message_handler(load_count, lambda message: message.text.isdigit(), state=FSMAnnouncement.count)
     dp.register_message_handler(load_count_ignore, state=FSMAnnouncement.count)
+
+    dp.register_message_handler(load_condition,
+                                lambda message: message.text == 'Новое' or message.text == 'Б/У',
+                                state=FSMAnnouncement.condition)
+    dp.register_message_handler(load_condition_ignore, state=FSMAnnouncement.condition)
 
     # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
     # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
