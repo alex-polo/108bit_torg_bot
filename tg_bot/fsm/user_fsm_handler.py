@@ -15,12 +15,14 @@ from tg_bot.keyboards import (
     get_fsm_type_task_keyboard,
     get_fsm_city_keyboard,
     back_button_text,
-    get_fsm_type_equipment_consumables_keyboard, get_fsm_vendor_keyboard
+    get_fsm_type_equipment_consumables_keyboard,
+    get_fsm_vendor_keyboard
 )
 
 dispatcher: Dispatcher = get_dispatcher()
 
 
+# ---------------------------------------------   BACK BUTTON   -------------------------------------------------
 @exception_handler
 # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
 async def event_back_button(message: Message, state: FSMContext):
@@ -72,7 +74,7 @@ async def cm_start(message: Message, state: FSMContext):
                          reply_markup=get_fsm_start_keyboard())
 
 
-#########################################   START   ####################################################
+# ---------------------------------------------   START   -------------------------------------------------
 @exception_handler
 async def load_start(message: Message, state: FSMContext):
     logger.info(f'Load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
@@ -97,16 +99,17 @@ async def cancel_handler(message: Message, state: FSMContext):
 
 
 @exception_handler
-@dispatcher.message_handler(lambda message: not message.text == 'Поехали', state=FSMAnnouncement.start)
+# @dispatcher.message_handler(lambda message: not message.text == 'Поехали', state=FSMAnnouncement.start)
 async def cm_start_invalid(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
     return await choose_an_answer_from_the_menu(message=message)
 
 
-#########################################   LOAD CITY   ####################################################
+# ---------------------------------------------   LOAD CITY   -------------------------------------------------
 @exception_handler
 async def load_city_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load city, state: {await state.get_state()}, city: {message.text}, user id: {message.from_user.id}')
+    logger.info(
+        f'Invalid load city, state: {await state.get_state()}, city: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Населенный пункт введен некорректно.\nИз какого вы города?',
                                reply_markup=get_fsm_city_keyboard())
 
@@ -122,9 +125,9 @@ async def load_city(message: Message, state: FSMContext):
                          f'Какая у вас задача?', reply_markup=get_fsm_type_task_keyboard())
 
 
-#########################################   LOAD TYPE TASK   ####################################################
+# ---------------------------------------------   LOAD TYPE TASK   -------------------------------------------------
 @exception_handler
-async def load_type_task_ignore(message: types.Message):
+async def load_type_task_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid type task, type task: {message.text}, user id: {message.from_user.id}')
     return await choose_an_answer_from_the_menu(message=message)
 
@@ -141,7 +144,7 @@ async def load_type_task(message: Message, state: FSMContext):
                          reply_markup=get_fsm_type_equipment_consumables_keyboard())
 
 
-#########################################   LOAD type_equipment_consumables   ####################################################
+# ----------------------------------   LOAD TYPE EQUIPMENT CONSUMABLES   ----------------------------------------
 @exception_handler
 async def load_type_equipment_consumables_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid type equipment consumables, text: {message.text}, user id: {message.from_user.id}')
@@ -160,9 +163,9 @@ async def load_type_equipment_consumables(message: Message, state: FSMContext):
                          reply_markup=get_fsm_vendor_keyboard())
 
 
-#########################################   LOAD vendor   ####################################################
+# --------------------------------------------   LOAD VENDOR   ---------------------------------------------------
 @exception_handler
-async def load_vendor_ignore(message: types.Message):
+async def load_vendor_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load vendor, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Некорректно указан производитель.\nУкажите производителя:',
                                reply_markup=get_fsm_vendor_keyboard())
@@ -180,7 +183,7 @@ async def load_vendor(message: Message, state: FSMContext):
                          reply_markup=get_fsm_vendor_keyboard())
 
 
-#########################################   LOAD count   ####################################################
+# --------------------------------------------   LOAD COUNT   ---------------------------------------------------
 @exception_handler
 async def load_count_ignore(message: types.Message):
     logger.info(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
@@ -242,33 +245,43 @@ async def finish(message: Message, state: FSMContext):
 
 
 def register_fsm(dp: Dispatcher):
+    logger.info('Registration FSMAnnouncement handlers for user')
+
     dp.register_message_handler(cm_start, commands=['post_ad'], state=None)
     dp.register_message_handler(cm_start, Text(equals='Опубликовать объявление'), state=None)
     dp.register_message_handler(event_back_button, Text(equals=back_button_text), state=FSMAnnouncement.all_states)
 
     dp.register_message_handler(load_start, Text(equals='Поехали'), state=FSMAnnouncement.start)
+    dp.register_message_handler(cm_start_invalid, state=FSMAnnouncement.start)
 
-    dp.register_message_handler(load_city, content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.city)
-    dp.register_message_handler(load_city_ignore, lambda message: not len(message.text) > 2,
+    dp.register_message_handler(load_city,
+                                lambda message: len(message.text) > 2,
                                 content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.city)
+    dp.register_message_handler(load_city_ignore, state=FSMAnnouncement.city)
 
-    dp.register_message_handler(load_type_task, content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.type_task)
-    dp.register_message_handler(load_type_task_ignore,
-                                lambda message: not (message.text == 'Хочу купить' or message.text == 'Хочу продать'),
+    dp.register_message_handler(load_type_task,
+                                lambda message: message.text == 'Хочу купить' or message.text == 'Хочу продать',
                                 content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.type_task)
+    dp.register_message_handler(load_type_task_ignore, state=FSMAnnouncement.type_task)
 
-    dp.register_message_handler(load_type_equipment_consumables, content_types=types.ContentTypes.TEXT,
+    dp.register_message_handler(load_type_equipment_consumables,
+                                lambda message: message.text == 'Системы безопасности' or
+                                                message.text == 'Автоматика и КИПиА' or
+                                                message.text == 'Электрика' or
+                                                message.text == 'Телеком и связь' or
+                                                message.text == 'Сервера, ПК, комплектующие',
+                                content_types=types.ContentTypes.TEXT,
                                 state=FSMAnnouncement.type_equipment_consumables)
-    dp.register_message_handler(load_type_equipment_consumables_ignore, (lambda message: not len(message.text) > 2),
-                                content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.type_equipment_consumables)
+    dp.register_message_handler(load_type_equipment_consumables_ignore,
+                                state=FSMAnnouncement.type_equipment_consumables)
 
-    dp.register_message_handler(load_vendor, content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.vendor)
-    dp.register_message_handler(load_vendor_ignore, lambda message: not len(message.text) > 2,
+    dp.register_message_handler(load_vendor,
+                                lambda message: len(message.text) > 2,
                                 content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.vendor)
+    dp.register_message_handler(load_vendor_ignore, state=FSMAnnouncement.vendor)
 
-    dp.register_message_handler(load_count, content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.count)
-    dp.register_message_handler(load_count_ignore, (lambda message: not message.text.isdigit()),
-                                content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.count)
+    dp.register_message_handler(load_count, lambda message: message.text.isdigit(), state=FSMAnnouncement.count)
+    dp.register_message_handler(load_count_ignore, state=FSMAnnouncement.count)
 
     # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
     # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
