@@ -10,3 +10,4 @@ from tg_bot.keyboards.fsm_user_keyboard import get_fsm_salesman_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import get_fsm_payment_type_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import get_fsm_sending_to_another_city_keyboard
 from tg_bot.keyboards.fsm_user_keyboard import get_fsm_email_keyboard
+from tg_bot.keyboards.fsm_user_keyboard import get_fsm_photo_keyboard

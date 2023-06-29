@@ -86,3 +86,10 @@ def get_fsm_email_keyboard() -> ReplyKeyboardMarkup:
     keyboard.insert(KeyboardButton(text='Пропустить'))
     keyboard.row(KeyboardButton(text=back_button_text))
     return keyboard
+
+
+def get_fsm_photo_keyboard() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    keyboard.insert(KeyboardButton(text='Пропустить'))
+    keyboard.row(KeyboardButton(text=back_button_text))
+    return keyboard

@@ -16,6 +16,6 @@ class FSMAnnouncement(StatesGroup):
     email = State()
     phone = State()
     details = State()
-    # photo = State()
+    photo = State()
     publish = State()
     finish = State()

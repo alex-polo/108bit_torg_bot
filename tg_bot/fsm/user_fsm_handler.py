@@ -20,7 +20,7 @@ from tg_bot.keyboards import (
     get_fsm_back_button_keyboard,
     get_fsm_condition_keyboard,
     get_fsm_salesman_keyboard, get_fsm_payment_type_keyboard, get_fsm_sending_to_another_city_keyboard,
-    get_fsm_email_keyboard
+    get_fsm_email_keyboard, get_fsm_photo_keyboard
 )
 
 dispatcher: Dispatcher = get_dispatcher()
@@ -31,37 +31,63 @@ dispatcher: Dispatcher = get_dispatcher()
 # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
 @exception_handler
 async def event_back_button(message: Message, state: FSMContext):
-    current_state = str(await state.get_state())
-    logger.info(f'Press back button, user id: {message.from_user.id}, current state: {current_state}')
-    if current_state == 'FSMAnnouncement:city':
-        await state.set_state(FSMAnnouncement.start)
-        await FSMAnnouncement.first()
+    print(f'first: {await state.get_state()}')
+    index_current_state = FSMAnnouncement.states_names.index(await state.get_state()) - 1
+    index_current_state = index_current_state if not index_current_state < 0 else 0
+
+    print(index_current_state)
+    print(FSMAnnouncement.all_states[index_current_state])
+    # await FSMAnnouncement.states[index_current_state].set()
+    await state.set_state(FSMAnnouncement.all_states[index_current_state])
+
+    print(f'second: {await state.get_state()}')
+
+    if index_current_state == 0:
         return await cm_start(message=message, state=state)
-
-    elif current_state == 'FSMAnnouncement:type_task':
-        await state.set_state(FSMAnnouncement.city)
-        await FSMAnnouncement.start.set()
+    elif index_current_state == 1:
         return await load_start(message=message, state=state)
-
-    elif current_state == 'FSMAnnouncement:type_equipment_consumables':
-        await state.set_state(FSMAnnouncement.type_task)
-        await FSMAnnouncement.city.set()
+    elif index_current_state == 2:
         return await load_city(message=message, state=state)
-
-    elif current_state == 'FSMAnnouncement:vendor':
-        await state.set_state(FSMAnnouncement.type_task)
-        await FSMAnnouncement.type_task.set()
+    elif index_current_state == 3:
         return await load_type_task(message=message, state=state)
-
-    elif current_state == 'FSMAnnouncement:count':
-        await state.set_state(FSMAnnouncement.type_equipment_consumables)
-        await FSMAnnouncement.type_equipment_consumables.set()
+    elif index_current_state == 4:
         return await load_type_equipment_consumables(message=message, state=state)
-
-    elif current_state == 'FSMAnnouncement:condition':
-        await state.set_state(FSMAnnouncement.vendor)
-        await FSMAnnouncement.vendor.set()
+    elif index_current_state == 5:
         return await load_vendor(message=message, state=state)
+    elif index_current_state == 6:
+        return await load_count(message=message, state=state)
+
+    # current_state = str(await state.get_state())
+    # logger.info(f'Press back button, user id: {message.from_user.id}, current state: {current_state}')
+    # if current_state == 'FSMAnnouncement:city':
+    #     await state.set_state(FSMAnnouncement.start)
+    #     await FSMAnnouncement.first()
+    #     return await cm_start(message=message, state=state)
+    #
+    # elif current_state == 'FSMAnnouncement:type_task':
+    #     await state.set_state(FSMAnnouncement.city)
+    #     await FSMAnnouncement.start.set()
+    #     return await load_start(message=message, state=state)
+    #
+    # elif current_state == 'FSMAnnouncement:type_equipment_consumables':
+    #     await state.set_state(FSMAnnouncement.type_task)
+    #     await FSMAnnouncement.city.set()
+    #     return await load_city(message=message, state=state)
+    #
+    # elif current_state == 'FSMAnnouncement:vendor':
+    #     await state.set_state(FSMAnnouncement.type_task)
+    #     await FSMAnnouncement.type_task.set()
+    #     return await load_type_task(message=message, state=state)
+    #
+    # elif current_state == 'FSMAnnouncement:count':
+    #     await state.set_state(FSMAnnouncement.type_equipment_consumables)
+    #     await FSMAnnouncement.type_equipment_consumables.set()
+    #     return await load_type_equipment_consumables(message=message, state=state)
+    #
+    # elif current_state == 'FSMAnnouncement:condition':
+    #     await state.set_state(FSMAnnouncement.vendor)
+    #     await FSMAnnouncement.vendor.set()
+    #     return await load_vendor(message=message, state=state)
 
     """
     start = State()
@@ -414,8 +440,57 @@ async def load_phone(message: Message, state: FSMContext):
         await FSMAnnouncement.next()
         await message.answer(f'Указанный телефон: {phone}.\n\n'
                              f'Кратко опишите модель оборудования, условия оплаты, '
-                             f'доставки и другую необходимую информацию.',
+                             f'доставки и другую необходимую информацию (допускается до 200 символов):',
                              reply_markup=get_fsm_back_button_keyboard())
+
+
+# ---------------------------------------------   LOAD DETAILS   ---------------------------------------------
+@exception_handler
+async def load_details_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid load details, text: {message.text}, user id: {message.from_user.id}')
+    return await message.answer(f'Некорректно указана дополнительная информация ((допускается до 200 символов)),'
+                                f'попробуйте еще раз:',
+                                reply_markup=get_fsm_back_button_keyboard())
+
+
+@exception_handler
+async def load_details(message: Message, state: FSMContext):
+    logger.info(f'Load details, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            details = message.text
+            data['details'] = details
+        else:
+            details = data['details']
+
+        await FSMAnnouncement.next()
+        await message.answer(f'Дополнительная информация:\n {details}.\n\n'
+                             f'Приложите фото:',
+                             reply_markup=get_fsm_photo_keyboard())
+
+
+
+# ---------------------------------------------   LOAD PHOTO   ---------------------------------------------
+@exception_handler
+async def load_photo_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid load photo, text: {message.text}, user id: {message.from_user.id}')
+    return await message.answer(f'Некорректно указано изображение, попробуйте еще раз:',
+                                reply_markup=get_fsm_photo_keyboard())
+
+
+@exception_handler
+async def load_photo(message: Message, state: FSMContext):
+    logger.info(f'Load details, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            photo = message.text
+            data['photo'] = photo
+        else:
+            photo = data['photo']
+
+        await FSMAnnouncement.next()
+        await message.answer(f'Изображение:\n {photo}.\n\n',
+                             reply_markup=get_fsm_photo_keyboard())
 
 
 # ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
@@ -515,7 +590,14 @@ def register_fsm(dp: Dispatcher):
     dp.register_message_handler(load_phone, lambda message: len(message.text) > 2, state=FSMAnnouncement.phone)
     dp.register_message_handler(load_phone_ignore, state=FSMAnnouncement.phone)
 
-    
+    dp.register_message_handler(load_details, lambda message: 0 < len(message.text) <= 200,
+                                state=FSMAnnouncement.details)
+    dp.register_message_handler(load_details_ignore, state=FSMAnnouncement.details)
+
+    dp.register_message_handler(load_photo,
+                                # lambda message: 0 < len(message.text) <= 200,
+                                state=FSMAnnouncement.details)
+    dp.register_message_handler(load_photo_ignore, state=FSMAnnouncement.details)
 
     # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
     # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
