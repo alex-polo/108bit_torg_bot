@@ -1,3 +1,5 @@
+import re
+
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -17,7 +19,8 @@ from tg_bot.keyboards import (
     get_fsm_type_equipment_consumables_keyboard,
     get_fsm_back_button_keyboard,
     get_fsm_condition_keyboard,
-    get_fsm_salesman_keyboard, get_fsm_payment_type_keyboard, get_fsm_sending_to_another_city_keyboard
+    get_fsm_salesman_keyboard, get_fsm_payment_type_keyboard, get_fsm_sending_to_another_city_keyboard,
+    get_fsm_email_keyboard
 )
 
 dispatcher: Dispatcher = get_dispatcher()
@@ -324,8 +327,16 @@ async def load_payment_type(message: Message, state: FSMContext):
             payment_type = data['payment_type']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Выбран тип оплаты: {payment_type}.\n\nЕсть ли отправка в другой город?:',
-                         reply_markup=get_fsm_sending_to_another_city_keyboard())
+    if data['type_task'] == 'Купить':
+        async with state.proxy() as data:
+            data['sending_to_another_city'] = 'no_use'
+
+        await FSMAnnouncement.next()
+        await message.answer(f'Укажите электронную почту для связи:',
+                             reply_markup=get_fsm_back_button_keyboard())
+    else:
+        await message.answer(f'Выбран тип оплаты: {payment_type}.\n\nЕсть ли отправка в другой город?:',
+                             reply_markup=get_fsm_sending_to_another_city_keyboard())
 
 
 # ----------------------------------   LOAD SENDING TO ANOTHER CITY   ---------------------------------------
@@ -340,19 +351,71 @@ async def load_sending_to_another_city_ignore(message: types.Message, state: FSM
 async def load_sending_to_another_city(message: Message, state: FSMContext):
     logger.info(f'Load sending_to_another_city, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        if message.text != back_button_text:
-            if data['type_task'] == 'Купить':
-                pass
-            else:
+        if data['type_task'] == 'Купить':
+            await FSMAnnouncement.next()
+        else:
+            if message.text != back_button_text:
                 sending_to_another_city = message.text
                 data['sending_to_another_city'] = sending_to_another_city
-        else:
+            else:
                 sending_to_another_city = data['sending_to_another_city']
 
             await FSMAnnouncement.next()
             await message.answer(f'Возможность доставки в другой город: {sending_to_another_city}.'
-                         f'\n\nУкажите электронную почту для связи?:',
-                         reply_markup=get_fsm_sending_to_another_city_keyboard())
+                                 f'\n\nУкажите электронную почту для связи:',
+                                 reply_markup=get_fsm_email_keyboard())
+
+
+# ---------------------------------------------   LOAD EMAIL   ---------------------------------------------
+@exception_handler
+async def load_email_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid load email, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Укажите электронную почту для связи:',
+                               reply_markup=get_fsm_email_keyboard())
+
+
+@exception_handler
+async def load_email(message: Message, state: FSMContext):
+    logger.info(f'Load email, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            if message.text == 'Пропустить':
+                data['email'] = 'no_use'
+            else:
+                email = message.text
+                data['email'] = email
+        else:
+            email = data['email']
+
+        await FSMAnnouncement.next()
+        await message.answer(f'Указан E-mail: {email}.'
+                             f'\n\nУкажите контактный телефон для связи:',
+                             reply_markup=get_fsm_back_button_keyboard())
+
+
+# ---------------------------------------------   LOAD PHONE   ---------------------------------------------
+@exception_handler
+async def load_phone_ignore(message: types.Message, state: FSMContext):
+    logger.info(f'Invalid load phone, text: {message.text}, user id: {message.from_user.id}')
+    return await message.answer(f'Некорректно указан телефонный номер.\n\nУкажите контактный телефон для связи:',
+                                reply_markup=get_fsm_back_button_keyboard())
+
+
+@exception_handler
+async def load_phone(message: Message, state: FSMContext):
+    logger.info(f'Load phone, text: {message.text}. user id: {message.from_user.id}')
+    async with state.proxy() as data:
+        if message.text != back_button_text:
+            phone = message.text
+            data['phone'] = phone
+        else:
+            phone = data['phone']
+
+        await FSMAnnouncement.next()
+        await message.answer(f'Указанный телефон: {phone}.\n\n'
+                             f'Кратко опишите модель оборудования, условия оплаты, '
+                             f'доставки и другую необходимую информацию.',
+                             reply_markup=get_fsm_back_button_keyboard())
 
 
 # ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
@@ -444,6 +507,15 @@ def register_fsm(dp: Dispatcher):
                                 state=FSMAnnouncement.sending_to_another_city)
     dp.register_message_handler(load_sending_to_another_city_ignore, state=FSMAnnouncement.sending_to_another_city)
 
+    dp.register_message_handler(load_email,
+                                lambda message: re.match(r"^[-\w\.]+@([-\w]+\.)+[-\w]{2,4}$", message.text),
+                                state=FSMAnnouncement.email)
+    dp.register_message_handler(load_email_ignore, state=FSMAnnouncement.email)
+
+    dp.register_message_handler(load_phone, lambda message: len(message.text) > 2, state=FSMAnnouncement.phone)
+    dp.register_message_handler(load_phone_ignore, state=FSMAnnouncement.phone)
+
+    
 
     # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
     # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
