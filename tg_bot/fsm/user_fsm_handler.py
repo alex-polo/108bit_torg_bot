@@ -31,63 +31,63 @@ dispatcher: Dispatcher = get_dispatcher()
 # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
 @exception_handler
 async def event_back_button(message: Message, state: FSMContext):
-    print(f'first: {await state.get_state()}')
-    index_current_state = FSMAnnouncement.states_names.index(await state.get_state()) - 1
-    index_current_state = index_current_state if not index_current_state < 0 else 0
-
-    print(index_current_state)
-    print(FSMAnnouncement.all_states[index_current_state])
-    # await FSMAnnouncement.states[index_current_state].set()
-    await state.set_state(FSMAnnouncement.all_states[index_current_state])
-
-    print(f'second: {await state.get_state()}')
-
-    if index_current_state == 0:
-        return await cm_start(message=message, state=state)
-    elif index_current_state == 1:
-        return await load_start(message=message, state=state)
-    elif index_current_state == 2:
-        return await load_city(message=message, state=state)
-    elif index_current_state == 3:
-        return await load_type_task(message=message, state=state)
-    elif index_current_state == 4:
-        return await load_type_equipment_consumables(message=message, state=state)
-    elif index_current_state == 5:
-        return await load_vendor(message=message, state=state)
-    elif index_current_state == 6:
-        return await load_count(message=message, state=state)
-
-    # current_state = str(await state.get_state())
-    # logger.info(f'Press back button, user id: {message.from_user.id}, current state: {current_state}')
-    # if current_state == 'FSMAnnouncement:city':
-    #     await state.set_state(FSMAnnouncement.start)
-    #     await FSMAnnouncement.first()
-    #     return await cm_start(message=message, state=state)
+    # print(f'first: {await state.get_state()}')
+    # index_current_state = FSMAnnouncement.states_names.index(await state.get_state()) - 1
+    # index_current_state = index_current_state if not index_current_state < 0 else 0
     #
-    # elif current_state == 'FSMAnnouncement:type_task':
-    #     await state.set_state(FSMAnnouncement.city)
-    #     await FSMAnnouncement.start.set()
-    #     return await load_start(message=message, state=state)
+    # print(index_current_state)
+    # print(FSMAnnouncement.all_states[index_current_state])
+    # # await FSMAnnouncement.states[index_current_state].set()
+    # await state.set_state(FSMAnnouncement.all_states[index_current_state])
     #
-    # elif current_state == 'FSMAnnouncement:type_equipment_consumables':
-    #     await state.set_state(FSMAnnouncement.type_task)
-    #     await FSMAnnouncement.city.set()
-    #     return await load_city(message=message, state=state)
+    # print(f'second: {await state.get_state()}')
     #
-    # elif current_state == 'FSMAnnouncement:vendor':
-    #     await state.set_state(FSMAnnouncement.type_task)
-    #     await FSMAnnouncement.type_task.set()
+    # if index_current_state == 0:
+    #     await cm_start(message=message, state=state)
+    # elif index_current_state == 1:
+    #     await load_start(message=message, state=state)
+    # elif index_current_state == 2:
+    #     await load_city(message=message, state=state)
+    # elif index_current_state == 3:
     #     return await load_type_task(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:count':
-    #     await state.set_state(FSMAnnouncement.type_equipment_consumables)
-    #     await FSMAnnouncement.type_equipment_consumables.set()
+    # elif index_current_state == 4:
     #     return await load_type_equipment_consumables(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:condition':
-    #     await state.set_state(FSMAnnouncement.vendor)
-    #     await FSMAnnouncement.vendor.set()
+    # elif index_current_state == 5:
     #     return await load_vendor(message=message, state=state)
+    # elif index_current_state == 6:
+    #     return await load_count(message=message, state=state)
+
+    current_state = str(await state.get_state())
+    logger.info(f'Press back button, user id: {message.from_user.id}, current state: {current_state}')
+    if current_state == 'FSMAnnouncement:city':
+        await state.set_state(FSMAnnouncement.start)
+        await FSMAnnouncement.first()
+        return await cm_start(message=message, state=state)
+
+    elif current_state == 'FSMAnnouncement:type_task':
+        await state.set_state(FSMAnnouncement.city)
+        await FSMAnnouncement.start.set()
+        return await load_start(message=message, state=state)
+
+    elif current_state == 'FSMAnnouncement:type_equipment_consumables':
+        await state.set_state(FSMAnnouncement.type_task)
+        await FSMAnnouncement.city.set()
+        return await load_city(message=message, state=state)
+
+    elif current_state == 'FSMAnnouncement:vendor':
+        await state.set_state(FSMAnnouncement.type_task)
+        await FSMAnnouncement.type_task.set()
+        return await load_type_task(message=message, state=state)
+
+    elif current_state == 'FSMAnnouncement:count':
+        await state.set_state(FSMAnnouncement.type_equipment_consumables)
+        await FSMAnnouncement.type_equipment_consumables.set()
+        return await load_type_equipment_consumables(message=message, state=state)
+
+    elif current_state == 'FSMAnnouncement:condition':
+        await state.set_state(FSMAnnouncement.vendor)
+        await FSMAnnouncement.vendor.set()
+        return await load_vendor(message=message, state=state)
 
     """
     start = State()
@@ -583,7 +583,8 @@ def register_fsm(dp: Dispatcher):
     dp.register_message_handler(load_sending_to_another_city_ignore, state=FSMAnnouncement.sending_to_another_city)
 
     dp.register_message_handler(load_email,
-                                lambda message: re.match(r"^[-\w\.]+@([-\w]+\.)+[-\w]{2,4}$", message.text),
+                                lambda message: (re.match(r"^[-\w\.]+@([-\w]+\.)+[-\w]{2,4}$", message.text)) or
+                                message.text == 'Пропустить',
                                 state=FSMAnnouncement.email)
     dp.register_message_handler(load_email_ignore, state=FSMAnnouncement.email)
 
