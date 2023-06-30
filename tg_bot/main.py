@@ -18,6 +18,7 @@ from tg_bot.middlewares.environment import EnvironmentMiddleware
 _messages_queue: asyncio.Queue = Optional[None]
 _bot: Bot = Optional[None]
 _dispatcher: Dispatcher = Optional[None]
+_config: TgBot = Optional[None]
 
 
 def get_dispatcher() -> Dispatcher:
@@ -44,7 +45,6 @@ async def _on_startup(dp) -> None:
         types.BotCommand("post_ad", 'Опубликовать объявление'),
         ],
         scope=types.BotCommandScopeDefault())
-    pass
 
 
 async def _on_shutdown(dp) -> None:
@@ -53,7 +53,8 @@ async def _on_shutdown(dp) -> None:
 
 
 def main(config: TgBot):
-    global _bot, _dispatcher, _messages_queue
+    global _bot, _dispatcher, _messages_queue, _config
+    _config = config
 
     storage = MemoryStorage()
     # storage = RedisStorage2() if config.tg_bot.use_redis else MemoryStorage()
@@ -63,10 +64,13 @@ def main(config: TgBot):
     register_all_middlewares(dp=_dispatcher, config=config)
     register_all_filters(dp=_dispatcher)
     # register_all_handlers(dp=_dispatcher)
+    global _messages_queue
+    _messages_queue = asyncio.Queue()
     from tg_bot.handlers.user import register_user
     register_user(dp=_dispatcher)
     register_echo(dp=_dispatcher)
-    service.registry_mailing_service(bot=_bot, channels_ids=config.channel_id)
+
+    service.registry_mailing_service(bot=_bot, channels_ids=_config.channel_id)
 
     asyncio.set_event_loop(asyncio.new_event_loop())
     executor.start_polling(dispatcher=_dispatcher,

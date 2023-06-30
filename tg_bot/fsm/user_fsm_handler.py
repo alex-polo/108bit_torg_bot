@@ -1,4 +1,6 @@
+import asyncio
 import re
+from typing import Optional
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
@@ -8,6 +10,7 @@ from loguru import logger
 
 from tg_bot.fsm.classes import FSMAnnouncement
 from tg_bot.fsm.exceptions import exception_handler
+from tg_bot.fsm.utils import is_float
 from tg_bot.main import get_dispatcher
 
 from tg_bot.keyboards import (
@@ -22,13 +25,12 @@ from tg_bot.keyboards import (
     get_fsm_salesman_keyboard, get_fsm_payment_type_keyboard, get_fsm_sending_to_another_city_keyboard,
     get_fsm_email_keyboard, get_fsm_photo_keyboard
 )
+from tg_bot.service import format_message, send_message, send_message_to_channels
 
 dispatcher: Dispatcher = get_dispatcher()
 
 
 # ---------------------------------------------   BACK BUTTON   -------------------------------------------------
-
-# @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
 @exception_handler
 async def event_back_button(message: Message, state: FSMContext):
     user_id = message.from_user.id
@@ -61,7 +63,12 @@ async def event_back_button(message: Message, state: FSMContext):
     elif current_index == 10:
         return await load_price(message=message, state=state)
     elif current_index == 11:
-        return await load_payment_type(message=message, state=state)
+        async with state.proxy() as data:
+            if data['type_task'] == 'Купить':
+                await FSMAnnouncement.price.set()
+                return await load_price(message=message, state=state)
+            else:
+                return await load_payment_type(message=message, state=state)
     elif current_index == 12:
         return await load_sending_to_another_city(message=message, state=state)
     elif current_index == 13:
@@ -73,50 +80,11 @@ async def event_back_button(message: Message, state: FSMContext):
     elif current_index == 16:
         return await load_photo(message=message, state=state)
 
-    # if current_state == 'FSMAnnouncement:city':
-    #     await state.set_state(FSMAnnouncement.start)
-    #     await FSMAnnouncement.first()
-    #     return await cm_start(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:type_task':
-    #     await state.set_state(FSMAnnouncement.city)
-    #     await FSMAnnouncement.start.set()
-    #     return await load_start(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:type_equipment_consumables':
-    #     # await state.set_state(FSMAnnouncement.type_task)
-    #     c_index = FSMAnnouncement.states_names.index('FSMAnnouncement:type_equipment_consumables')
-    #     index = FSMAnnouncement.states_names.index(await state.get_state())
-    #     print(c_index, index)
-    #     print(FSMAnnouncement.states[index - 2])
-    #     await FSMAnnouncement.states[index - 2].set()
-    #     # print(f'state: {await state.get_state()}, index: {index_current_state}')
-    #     # print('change')
-    #     # print(await FSMAnnouncement.states.index(index_current_state))
-    #
-    #     # await FSMAnnouncement.city.set()
-    #     return await load_city(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:vendor':
-    #     await state.set_state(FSMAnnouncement.type_task)
-    #     await FSMAnnouncement.type_task.set()
-    #     return await load_type_task(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:count':
-    #     await state.set_state(FSMAnnouncement.type_equipment_consumables)
-    #     await FSMAnnouncement.type_equipment_consumables.set()
-    #     return await load_type_equipment_consumables(message=message, state=state)
-    #
-    # elif current_state == 'FSMAnnouncement:condition':
-    #     await state.set_state(FSMAnnouncement.vendor)
-    #     await FSMAnnouncement.vendor.set()
-    #     return await load_vendor(message=message, state=state)
-
 
 # count
 @exception_handler
 async def choose_an_answer_from_the_menu(message: Message, state: FSMContext):
-    return await message.reply('Выберите ответ в меню')
+    return await message.reply('Выберите ответ в меню', reply_markup=get_fsm_start_keyboard())
 
 
 @exception_handler
@@ -153,7 +121,6 @@ async def cancel_handler(message: Message, state: FSMContext):
 
 
 @exception_handler
-# @dispatcher.message_handler(lambda message: not message.text == 'Поехали', state=FSMAnnouncement.start)
 async def cm_start_invalid(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
     return await choose_an_answer_from_the_menu(message=message)
@@ -187,7 +154,7 @@ async def load_city(message: Message, state: FSMContext):
 @exception_handler
 async def load_type_task_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid type task, type task: {message.text}, user id: {message.from_user.id}')
-    return await choose_an_answer_from_the_menu(message=message)
+    return await message.reply('Выберите ответ в меню', reply_markup=get_fsm_type_task_keyboard())
 
 
 @exception_handler
@@ -210,7 +177,7 @@ async def load_type_task(message: Message, state: FSMContext):
 @exception_handler
 async def load_type_equipment_consumables_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid type equipment consumables, text: {message.text}, user id: {message.from_user.id}')
-    return await choose_an_answer_from_the_menu(message=message)
+    return await message.reply('Выберите ответ в меню', reply_markup=get_fsm_type_equipment_consumables_keyboard())
 
 
 @exception_handler
@@ -257,7 +224,9 @@ async def load_vendor(message: Message, state: FSMContext):
 @exception_handler
 async def load_count_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Некорректно указано количество.\n\nУкажите количество единиц (число):',
+    return await message.reply('Некорректно указано количество,\n'
+                               'указанное значение должно быть в диапозоне от 0 до 999999.'
+                               '\n\nУкажите количество единиц (число):',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
@@ -273,7 +242,7 @@ async def load_count(message: Message, state: FSMContext):
 
     await FSMAnnouncement.next()
     await message.answer(f'Указанное количество: {count}.\n\n'
-                         f'Укажите состояние:',
+                         f'Укажите в каком состоянии товар:',
                          reply_markup=get_fsm_condition_keyboard())
 
 
@@ -281,7 +250,7 @@ async def load_count(message: Message, state: FSMContext):
 @exception_handler
 async def load_condition_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load condition, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Неверно указано состояние.\nВыберите один из пунктов меню:',
+    return await message.reply('Неверно указано состояние товара.\n\nВыберите один из пунктов меню:',
                                reply_markup=get_fsm_condition_keyboard())
 
 
@@ -296,7 +265,7 @@ async def load_condition(message: Message, state: FSMContext):
             condition = data['condition']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Состояние: {condition}.\n\nВы представитель компании или частное лицо?:',
+    await message.answer(f'Указанное состояние товара: {condition}.\n\nВы представитель компании или частное лицо?:',
                          reply_markup=get_fsm_salesman_keyboard())
 
 
@@ -305,7 +274,7 @@ async def load_condition(message: Message, state: FSMContext):
 @exception_handler
 async def load_salesman_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid salesman count, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Неверно указан представитель.\nВыберите один из пунктов меню:',
+    return await message.reply('Неверно указан представитель.\n\nВыберите один из пунктов меню:',
                                reply_markup=get_fsm_salesman_keyboard())
 
 
@@ -320,7 +289,7 @@ async def load_salesman(message: Message, state: FSMContext):
             salesman = data['salesman']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость (число в рублях):',
+    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость в рублях (число):',
                          reply_markup=get_fsm_back_button_keyboard())
 
 
@@ -328,7 +297,9 @@ async def load_salesman(message: Message, state: FSMContext):
 @exception_handler
 async def load_price_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid price count, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Неверно указана стоимость.\nУкажите число в рублях:',
+    return await message.reply('Неверно указана стоимость.\n'
+                               'Число должно быть в диапозоне от 0 до 9999999:\n\n'
+                               'Введите цену повторно:',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
@@ -351,7 +322,7 @@ async def load_price(message: Message, state: FSMContext):
 @exception_handler
 async def load_payment_type_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid payment type, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Укажите возможность доставки:',
+    return await message.reply('Неверно указан тип оплаты\n\nВыберите пункт меню:',
                                reply_markup=get_fsm_payment_type_keyboard())
 
 
@@ -359,6 +330,10 @@ async def load_payment_type_ignore(message: types.Message, state: FSMContext):
 async def load_payment_type(message: Message, state: FSMContext):
     logger.info(f'Load payment type, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
+        # if data['type_task'] == 'Купить':
+        #     await FSMAnnouncement.price.set()
+        #     return await load_price(message=message, state=state)
+
         if message.text != back_button_text:
             payment_type = message.text
             data['payment_type'] = payment_type
@@ -369,10 +344,9 @@ async def load_payment_type(message: Message, state: FSMContext):
     if data['type_task'] == 'Купить':
         async with state.proxy() as data:
             data['sending_to_another_city'] = 'no_use'
-
-        await FSMAnnouncement.next()
-        await message.answer(f'Укажите электронную почту для связи:',
-                             reply_markup=get_fsm_back_button_keyboard())
+            await FSMAnnouncement.next()
+            await message.answer(f'Выбран тип оплаты: {payment_type}.\n\nУкажите электронную почту для связи:',
+                                 reply_markup=get_fsm_email_keyboard())
     else:
         await message.answer(f'Выбран тип оплаты: {payment_type}.\n\nЕсть ли отправка в другой город?:',
                              reply_markup=get_fsm_sending_to_another_city_keyboard())
@@ -391,7 +365,8 @@ async def load_sending_to_another_city(message: Message, state: FSMContext):
     logger.info(f'Load sending_to_another_city, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if data['type_task'] == 'Купить':
-            await FSMAnnouncement.next()
+            await FSMAnnouncement.payment_type.set()
+            return await load_payment_type(message=message, state=state)
         else:
             if message.text != back_button_text:
                 sending_to_another_city = message.text
@@ -409,7 +384,7 @@ async def load_sending_to_another_city(message: Message, state: FSMContext):
 @exception_handler
 async def load_email_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load email, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Укажите электронную почту для связи:',
+    return await message.reply('Неверно указан E-mail\n\nУкажите электронную почту для связи:',
                                reply_markup=get_fsm_email_keyboard())
 
 
@@ -417,17 +392,19 @@ async def load_email_ignore(message: types.Message, state: FSMContext):
 async def load_email(message: Message, state: FSMContext):
     logger.info(f'Load email, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        if message.text != back_button_text:
-            if message.text == 'Пропустить':
-                data['email'] = 'no_use'
-            else:
-                email = message.text
-                data['email'] = email
+        if message.text == 'Пропустить':
+            email = 'no_use'
+            data['email'] = email
+        elif message.text != back_button_text:
+            email = message.text
+            data['email'] = email
         else:
             email = data['email']
 
         await FSMAnnouncement.next()
-        await message.answer(f'Указан E-mail: {email}.'
+
+        message_text = 'E-mail не указан.' if email == 'no_use' else f'Указан E-mail: {email}.'
+        await message.answer(f'{message_text}'
                              f'\n\nУкажите контактный телефон для связи:',
                              reply_markup=get_fsm_back_button_keyboard())
 
@@ -461,7 +438,7 @@ async def load_phone(message: Message, state: FSMContext):
 @exception_handler
 async def load_details_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load details, text: {message.text}, user id: {message.from_user.id}')
-    return await message.answer(f'Некорректно указана дополнительная информация ((допускается до 200 символов)),'
+    return await message.answer(f'Некорректно указана дополнительная информация (допускается до 200 символов),'
                                 f'попробуйте еще раз:',
                                 reply_markup=get_fsm_back_button_keyboard())
 
@@ -486,45 +463,46 @@ async def load_details(message: Message, state: FSMContext):
 @exception_handler
 async def load_photo_ignore(message: types.Message, state: FSMContext):
     logger.info(f'Invalid load photo, text: {message.text}, user id: {message.from_user.id}')
-    return await message.answer(f'Некорректно указано изображение, попробуйте еще раз:',
+    return await message.answer(f'Некорректно указано изображение,\nпопробуйте еще раз:',
                                 reply_markup=get_fsm_photo_keyboard())
 
 
 @exception_handler
 async def load_photo(message: Message, state: FSMContext):
-    logger.info(f'Load details, text: {message.text}. user id: {message.from_user.id}')
+    logger.info(f'Load photo, content: {message.photo}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        if message.text != back_button_text:
-            photo = message.text
+        if message.text == 'Пропустить':
+            photo = 'no_use'
             data['photo'] = photo
-        else:
-            photo = data['photo']
+        elif message.text != back_button_text:
+            photo = message.photo[0].file_id
+            data['photo'] = photo
 
         await FSMAnnouncement.next()
-        await message.answer(f'Изображение:\n {photo}.\n\n',
-                             reply_markup=get_fsm_photo_keyboard())
+        await message.answer(f'Формируем ваше объявление')
+        result = await send_message(chat_id=message.from_user.id, data=data, keyboard=get_fsm_publish_keyboard)
+        if result is False:
+            raise Exception('Forming ad is unsuccessfully')
 
 
 # ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
 @exception_handler
 async def publish(message: Message, state: FSMContext):
-    # async with state.proxy() as data:
-    #     data['type_task'] = message.text
-
-    # raise Exception('sssssssssssssssss')
-
     async with state.proxy() as data:
-        await FSMAnnouncement.next()
-        await message.answer(f'Поздравляю!\nВы сформировали объявление:\n{str(data)}',
-                             reply_markup=get_fsm_publish_keyboard())
+        await state.finish()
+        result = await send_message_to_channels(data=data)
+        if result:
+            await message.answer(f'Поздравляю!\nВаше объявление опубликовано', reply_markup=get_main_keyboard())
+        else:
+            raise Exception('publish error')
 
 
 # ---------------------------------------------   FSM FINISH   -------------------------------------------------
-@exception_handler
-async def finish(message: Message, state: FSMContext):
-    # await cm_start(message=message, state=state)
-    await state.finish()
-    await message.answer('Ваше объявление отправлено.', reply_markup=get_main_keyboard())
+# @exception_handler
+# async def finish(message: Message, state: FSMContext):
+#     # await cm_start(message=message, state=state)
+#     await state.finish()
+#     await message.answer('Ваше объявление отправлено.', reply_markup=get_main_keyboard())
 
 
 # ---------------------------------------------   REGISTRY FSM   -------------------------------------------------
@@ -565,7 +543,9 @@ def register_fsm(dp: Dispatcher):
                                 content_types=types.ContentTypes.TEXT, state=FSMAnnouncement.vendor)
     dp.register_message_handler(load_vendor_ignore, state=FSMAnnouncement.vendor)
 
-    dp.register_message_handler(load_count, lambda message: message.text.isdigit(), state=FSMAnnouncement.count)
+    dp.register_message_handler(load_count,
+                                lambda message: message.text.isdigit() and (0 < int(message.text) < 9999999),
+                                state=FSMAnnouncement.count)
     dp.register_message_handler(load_count_ignore, state=FSMAnnouncement.count)
 
     dp.register_message_handler(load_condition,
@@ -578,7 +558,9 @@ def register_fsm(dp: Dispatcher):
                                 state=FSMAnnouncement.salesman)
     dp.register_message_handler(load_salesman_ignore, state=FSMAnnouncement.salesman)
 
-    dp.register_message_handler(load_price, lambda message: message.text.isdigit(), state=FSMAnnouncement.price)
+    dp.register_message_handler(load_price,
+                                lambda message: is_float(text=message.text) and (0 < float(message.text) < 9999999),
+                                state=FSMAnnouncement.price)
     dp.register_message_handler(load_price_ignore, state=FSMAnnouncement.price)
 
     dp.register_message_handler(load_payment_type,
@@ -607,13 +589,11 @@ def register_fsm(dp: Dispatcher):
                                 state=FSMAnnouncement.details)
     dp.register_message_handler(load_details_ignore, state=FSMAnnouncement.details)
 
-    dp.register_message_handler(load_photo,
-                                # lambda message: 0 < len(message.text) <= 200,
-                                state=FSMAnnouncement.details)
-    dp.register_message_handler(load_photo_ignore, state=FSMAnnouncement.details)
+    dp.register_message_handler(load_photo, content_types=types.ContentTypes.ANY, state=FSMAnnouncement.photo)
+    dp.register_message_handler(load_photo_ignore, state=FSMAnnouncement.photo)
 
     # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
     # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
 
     dp.register_message_handler(publish, state=FSMAnnouncement.publish)
-    dp.register_message_handler(finish, state=FSMAnnouncement.finish)
+    # dp.register_message_handler(finish, state=FSMAnnouncement.finish)

@@ -53,6 +53,7 @@ def get_fsm_publish_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(KeyboardButton(text="Опубликовать"))
     keyboard.add(KeyboardButton(text=back_button_text))
+    keyboard.add(KeyboardButton(text='Я передумал'))
     return keyboard
 
 
@@ -83,7 +84,7 @@ def get_fsm_sending_to_another_city_keyboard() -> ReplyKeyboardMarkup:
 
 def get_fsm_email_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    keyboard.insert(KeyboardButton(text='Пропустить'))
+    keyboard.row(KeyboardButton(text='Пропустить'))
     keyboard.row(KeyboardButton(text=back_button_text))
     return keyboard
 

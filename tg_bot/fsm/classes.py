@@ -18,4 +18,3 @@ class FSMAnnouncement(StatesGroup):
     details = State()
     photo = State()
     publish = State()
-    finish = State()
