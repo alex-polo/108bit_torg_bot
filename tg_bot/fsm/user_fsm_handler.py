@@ -509,7 +509,7 @@ async def publish(message: Message, state: FSMContext):
 def register_fsm(dp: Dispatcher):
     logger.info('Registration FSMAnnouncement handlers for user')
 
-    dp.register_message_handler(cm_start, commands=['post_ad'], state=None)
+    dp.register_message_handler(cm_start, commands=['post'], state=None)
     dp.register_message_handler(cm_start, Text(equals='Опубликовать объявление'), state=None)
     dp.register_message_handler(event_back_button, Text(equals=back_button_text), state=FSMAnnouncement.all_states)
 

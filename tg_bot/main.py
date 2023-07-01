@@ -42,7 +42,7 @@ def register_all_handlers(dp: Dispatcher):
 async def _on_startup(dp) -> None:
     await dp.bot.set_my_commands([
         types.BotCommand("start", "Запустить бота"),
-        types.BotCommand("post_ad", 'Опубликовать объявление'),
+        types.BotCommand("post", 'Опубликовать объявление'),
         ],
         scope=types.BotCommandScopeDefault())
 
