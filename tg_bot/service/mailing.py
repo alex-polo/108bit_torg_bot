@@ -19,9 +19,9 @@ def format_message(data: dict) -> FormatMessage:
 
     tags_list = list()
     tags_list.append(fmt.hbold('#Куплю' if data.get('type_task') == 'Купить' else '#Продам'))
-    tags_list.append(fmt.hbold(f'#{data.get("city")}'))
+    tags_list.append(fmt.hbold(f'#{data.get("city").replace(" ", "_")}'))
     tags_list.append(fmt.hbold(f'#{data.get("type_equipment_consumables").replace(" ", "_")}'))
-    tags_list.append(fmt.hbold(f'#{data.get("vendor")}'))
+    tags_list.append(fmt.hbold(f'#{data.get("vendor").replace(" ", "_")}'))
 
     fmt_body_list = list()
     fmt_body_list.append(fmt.text(f'Количество: {data.get("count")} шт.'))
