@@ -16,28 +16,32 @@ _MESSAGES_QUEUE: asyncio.Queue = Optional[None]
 
 def format_message(data: dict) -> FormatMessage:
     date = fmt.hbold(datetime.datetime.now().strftime("%d-%m-%Y"))
-    task_type = fmt.hbold('#Куплю\n' if data.get('type_task') == 'Купить' else '#Продам\n')
+
+    tags_list = list()
+    tags_list.append(fmt.hbold('#Куплю' if data.get('type_task') == 'Купить' else '#Продам'))
+    tags_list.append(fmt.hbold(f'#{data.get("city")}'))
+    tags_list.append(fmt.hbold(f'#{data.get("type_equipment_consumables").replace(" ", "_")}'))
+    tags_list.append(fmt.hbold(f'#{data.get("vendor")}'))
+
     fmt_body_list = list()
-    fmt_body_list.append(fmt.text(f'Город: {data.get("city")}'))
-    fmt_body_list.append(fmt.text(f'Тип оборудования/расходных материалов: {data.get("type_equipment_consumables")}'))
-    fmt_body_list.append(fmt.text(f'Производитель: #{data.get("vendor")}'))
-    fmt_body_list.append(fmt.text(f'Количество: {data.get("count")}'))
-    fmt_body_list.append(fmt.text(f'Состояние: {data.get("condition")}'))
-    fmt_body_list.append(fmt.text(f'Представитель: {data.get("salesman")}'))
+    fmt_body_list.append(fmt.text(f'Количество: {data.get("count")} шт.'))
+    fmt_body_list.append(fmt.text(f'Состояние: {data.get("condition").lower()}'))
+    fmt_body_list.append(fmt.text(f'Представитель: {data.get("salesman").lower()}'))
     fmt_body_list.append(fmt.text(f'Цена: {data.get("price")} руб.'))
-    fmt_body_list.append(fmt.text(f'Оплата: {data.get("payment_type")}'))
+    fmt_body_list.append(fmt.text(f'Оплата: {data.get("payment_type").lower()}'))
     if data.get("sending_to_another_city") != 'no_use':
-        fmt_body_list.append(fmt.text(f'Отправка в другой город: {data.get("sending_to_another_city")}'))
+        fmt_body_list.append(fmt.text(f'Отправка в другой город: {data.get("sending_to_another_city").lower()}'))
     if data.get("email") != 'no_use':
-        fmt_body_list.append(fmt.text(f'E-mail: {data.get("email")}'))
+        fmt_body_list.append(fmt.text(f'Почта: {data.get("email").lower()}'))
     fmt_body_list.append(fmt.text(f'Телефон: {data.get("phone")}'))
     fmt_body_list.append(fmt.text(f'Подробнее: {data.get("details")}'))
 
+    fmt_header = fmt.text(*tags_list, sep="\n")
     fmt_body = fmt.text(*fmt_body_list, sep="\n")
 
     return FormatMessage(
         photo=None if data.get('photo') == 'no_use' else data.get('photo'),
-        text=fmt.text(date, task_type, fmt_body, sep="\n")
+        text=fmt.text(date, fmt_header, fmt_body, sep="\n\n")
     )
 
 

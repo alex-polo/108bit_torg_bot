@@ -11,7 +11,7 @@ from loguru import logger
 from tg_bot.fsm.classes import FSMAnnouncement
 from tg_bot.fsm.exceptions import exception_handler
 from tg_bot.fsm.utils import is_float
-from tg_bot.main import get_dispatcher
+# from tg_bot.main import get_dispatcher
 
 from tg_bot.keyboards import (
     get_main_keyboard,
@@ -27,7 +27,7 @@ from tg_bot.keyboards import (
 )
 from tg_bot.service import format_message, send_message, send_message_to_channels
 
-dispatcher: Dispatcher = get_dispatcher()
+# dispatcher: Dispatcher = get_dispatcher()
 
 
 # ---------------------------------------------   BACK BUTTON   -------------------------------------------------
@@ -89,7 +89,7 @@ async def choose_an_answer_from_the_menu(message: Message, state: FSMContext):
 
 @exception_handler
 async def cm_start(message: Message, state: FSMContext):
-    logger.info(f'Start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
+    logger.debug(f'Start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
     # await state.reset_state()
     await FSMAnnouncement.start.set()
     await message.answer('Привествую!\nЯ задам вам несколько вопросов и помогу правильно сформировать объявление.',
@@ -99,20 +99,18 @@ async def cm_start(message: Message, state: FSMContext):
 # ---------------------------------------------   START   -------------------------------------------------
 @exception_handler
 async def load_start(message: Message, state: FSMContext):
-    logger.info(f'Load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
+    logger.debug(f'Load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
     await FSMAnnouncement.next()
     await message.answer('Из какого вы города?', reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
-@dispatcher.message_handler(commands='Я передумал', state=FSMAnnouncement.start, )
-@dispatcher.message_handler(Text(equals='Я передумал', ignore_case=True), state='*')
 async def cancel_handler(message: Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
 
-    logger.info(f'Cancelling state: {current_state}')
+    logger.debug(f'Cancelling state: {current_state}')
     await state.finish()
     await message.reply('А вы знаете, '
                         'что в Дагестане на автомобилях нет задней передачи? '
@@ -122,22 +120,23 @@ async def cancel_handler(message: Message, state: FSMContext):
 
 @exception_handler
 async def cm_start_invalid(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid load start FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
     return await choose_an_answer_from_the_menu(message=message)
 
 
 # ---------------------------------------------   LOAD CITY   -------------------------------------------------
 @exception_handler
 async def load_city_ignore(message: types.Message, state: FSMContext):
-    logger.info(
-        f'Invalid load city, state: {await state.get_state()}, city: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Населенный пункт введен некорректно.\n\nИз какого вы города?',
+    logger.debug(
+        f'Invalid load city, state: {await state.get_state()}, city: {message.text}, user id: {message.from_user.id}'
+    )
+    return await message.reply('Населенный пункт введен некорректно.\n\nИз какого вы города??',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_city(message: Message, state: FSMContext):
-    logger.info(f'Load city, state: {await state.get_state()}, city: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load city, state: {await state.get_state()}, city: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             city = message.text.title()
@@ -153,13 +152,13 @@ async def load_city(message: Message, state: FSMContext):
 # ---------------------------------------------   LOAD TYPE TASK   -------------------------------------------------
 @exception_handler
 async def load_type_task_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid type task, type task: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid type task, type task: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Выберите ответ в меню', reply_markup=get_fsm_type_task_keyboard())
 
 
 @exception_handler
 async def load_type_task(message: Message, state: FSMContext):
-    logger.info(f'Load type task, type task: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load type task, type task: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             type_task = message.text.split(' ')[-1].title()
@@ -176,13 +175,13 @@ async def load_type_task(message: Message, state: FSMContext):
 # ----------------------------------   LOAD TYPE EQUIPMENT CONSUMABLES   ----------------------------------------
 @exception_handler
 async def load_type_equipment_consumables_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid type equipment consumables, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid type equipment consumables, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Выберите ответ в меню', reply_markup=get_fsm_type_equipment_consumables_keyboard())
 
 
 @exception_handler
 async def load_type_equipment_consumables(message: Message, state: FSMContext):
-    logger.info(f'Load type equipment consumables, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load type equipment consumables, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             type_equipment_consumables = message.text
@@ -192,21 +191,21 @@ async def load_type_equipment_consumables(message: Message, state: FSMContext):
 
     await FSMAnnouncement.next()
     await message.answer(f'Тип оборудования/расходных материалов:\n{type_equipment_consumables}.\n\n'
-                         f'Укажите производителя:',
+                         f'Укажите производителя.',
                          reply_markup=get_fsm_back_button_keyboard())
 
 
 # --------------------------------------------   LOAD VENDOR   ---------------------------------------------------
 @exception_handler
 async def load_vendor_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load vendor, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Некорректно указан производитель.\nУкажите производителя:',
+    logger.debug(f'Invalid load vendor, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Некорректно указан производитель.\n\nУкажите производителя.',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_vendor(message: Message, state: FSMContext):
-    logger.info(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             vendor = message.text
@@ -216,23 +215,23 @@ async def load_vendor(message: Message, state: FSMContext):
 
     await FSMAnnouncement.next()
     await message.answer(f'Производитель: {vendor}.\n\n'
-                         f'Укажите количество единиц (число):',
+                         f'Укажите количество единиц (число).',
                          reply_markup=get_fsm_back_button_keyboard())
 
 
 # --------------------------------------------   LOAD COUNT   ---------------------------------------------------
 @exception_handler
 async def load_count_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid load count, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Некорректно указано количество,\n'
                                'указанное значение должно быть в диапозоне от 0 до 999999.'
-                               '\n\nУкажите количество единиц (число):',
+                               '\n\nУкажите количество единиц (число).',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_count(message: Message, state: FSMContext):
-    logger.info(f'Load count, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load count, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             count = message.text
@@ -242,21 +241,21 @@ async def load_count(message: Message, state: FSMContext):
 
     await FSMAnnouncement.next()
     await message.answer(f'Указанное количество: {count}.\n\n'
-                         f'Укажите в каком состоянии товар:',
+                         f'Укажите состояние.',
                          reply_markup=get_fsm_condition_keyboard())
 
 
 # ---------------------------------------------   LOAD CONDITION   -------------------------------------------------
 @exception_handler
 async def load_condition_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load condition, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid load condition, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Неверно указано состояние товара.\n\nВыберите один из пунктов меню:',
                                reply_markup=get_fsm_condition_keyboard())
 
 
 @exception_handler
 async def load_condition(message: Message, state: FSMContext):
-    logger.info(f'Load condition, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load condition, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             condition = message.text
@@ -265,7 +264,7 @@ async def load_condition(message: Message, state: FSMContext):
             condition = data['condition']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Указанное состояние товара: {condition}.\n\nВы представитель компании или частное лицо?:',
+    await message.answer(f'Указанное состояние: {condition}.\n\nВы представитель компании или частное лицо?',
                          reply_markup=get_fsm_salesman_keyboard())
 
 
@@ -273,14 +272,14 @@ async def load_condition(message: Message, state: FSMContext):
 
 @exception_handler
 async def load_salesman_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid salesman count, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid salesman count, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Неверно указан представитель.\n\nВыберите один из пунктов меню:',
                                reply_markup=get_fsm_salesman_keyboard())
 
 
 @exception_handler
 async def load_salesman(message: Message, state: FSMContext):
-    logger.info(f'Load salesman, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load salesman, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             salesman = message.text
@@ -289,23 +288,23 @@ async def load_salesman(message: Message, state: FSMContext):
             salesman = data['salesman']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость в рублях (число):',
+    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость (число в рублях).',
                          reply_markup=get_fsm_back_button_keyboard())
 
 
 # ---------------------------------------------   LOAD PRICE   -------------------------------------------------
 @exception_handler
 async def load_price_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid price count, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid price count, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Неверно указана стоимость.\n'
                                'Число должно быть в диапозоне от 0 до 9999999:\n\n'
-                               'Введите цену повторно:',
+                               'Укажите стоимость (число в рублях).',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_price(message: Message, state: FSMContext):
-    logger.info(f'Load price, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load price, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             price = message.text
@@ -314,26 +313,22 @@ async def load_price(message: Message, state: FSMContext):
             price = data['price']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Указана стоимость: {price} руб.\n\nУкажите тип оплаты:',
+    await message.answer(f'Указана стоимость: {price} руб.\n\nУкажите тип оплаты.',
                          reply_markup=get_fsm_payment_type_keyboard())
 
 
 # ---------------------------------------------   LOAD PAYMENT TYPE   -------------------------------------------------
 @exception_handler
 async def load_payment_type_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid payment type, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid payment type, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Неверно указан тип оплаты\n\nВыберите пункт меню:',
                                reply_markup=get_fsm_payment_type_keyboard())
 
 
 @exception_handler
 async def load_payment_type(message: Message, state: FSMContext):
-    logger.info(f'Load payment type, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load payment type, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
-        # if data['type_task'] == 'Купить':
-        #     await FSMAnnouncement.price.set()
-        #     return await load_price(message=message, state=state)
-
         if message.text != back_button_text:
             payment_type = message.text
             data['payment_type'] = payment_type
@@ -355,14 +350,14 @@ async def load_payment_type(message: Message, state: FSMContext):
 # ----------------------------------   LOAD SENDING TO ANOTHER CITY   ---------------------------------------
 @exception_handler
 async def load_sending_to_another_city_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid sending_to_another_city, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Укажите возможность доставки:',
+    logger.debug(f'Invalid sending_to_another_city, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Неверно указана возможность доставки.\n\nЕсть ли отправка в другой город?',
                                reply_markup=get_fsm_sending_to_another_city_keyboard())
 
 
 @exception_handler
 async def load_sending_to_another_city(message: Message, state: FSMContext):
-    logger.info(f'Load sending_to_another_city, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load sending_to_another_city, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if data['type_task'] == 'Купить':
             await FSMAnnouncement.payment_type.set()
@@ -376,21 +371,21 @@ async def load_sending_to_another_city(message: Message, state: FSMContext):
 
             await FSMAnnouncement.next()
             await message.answer(f'Возможность доставки в другой город: {sending_to_another_city}.'
-                                 f'\n\nУкажите электронную почту для связи:',
+                                 f'\n\nУкажите электронную почту для связи.',
                                  reply_markup=get_fsm_email_keyboard())
 
 
 # ---------------------------------------------   LOAD EMAIL   ---------------------------------------------
 @exception_handler
 async def load_email_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load email, text: {message.text}, user id: {message.from_user.id}')
-    return await message.reply('Неверно указан E-mail\n\nУкажите электронную почту для связи:',
+    logger.debug(f'Invalid load email, text: {message.text}, user id: {message.from_user.id}')
+    return await message.reply('Неверно указана почта\n\nУкажите электронную почту для связи.',
                                reply_markup=get_fsm_email_keyboard())
 
 
 @exception_handler
 async def load_email(message: Message, state: FSMContext):
-    logger.info(f'Load email, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load email, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text == 'Пропустить':
             email = 'no_use'
@@ -403,23 +398,23 @@ async def load_email(message: Message, state: FSMContext):
 
         await FSMAnnouncement.next()
 
-        message_text = 'E-mail не указан.' if email == 'no_use' else f'Указан E-mail: {email}.'
+        message_text = 'Почта не указана.' if email == 'no_use' else f'Указана почта: {email}.'
         await message.answer(f'{message_text}'
-                             f'\n\nУкажите контактный телефон для связи:',
+                             f'\n\nУкажите контактный телефон для связи (обязательное условие).',
                              reply_markup=get_fsm_back_button_keyboard())
 
 
 # ---------------------------------------------   LOAD PHONE   ---------------------------------------------
 @exception_handler
 async def load_phone_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load phone, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid load phone, text: {message.text}, user id: {message.from_user.id}')
     return await message.answer(f'Некорректно указан телефонный номер.\n\nУкажите контактный телефон для связи:',
                                 reply_markup=get_fsm_back_button_keyboard())
 
 
 @exception_handler
 async def load_phone(message: Message, state: FSMContext):
-    logger.info(f'Load phone, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load phone, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             phone = message.text
@@ -429,15 +424,15 @@ async def load_phone(message: Message, state: FSMContext):
 
         await FSMAnnouncement.next()
         await message.answer(f'Указанный телефон: {phone}.\n\n'
-                             f'Кратко опишите модель оборудования, условия оплаты, '
-                             f'доставки и другую необходимую информацию (допускается до 200 символов):',
+                             f'Кратко опишите модель оборудования, условия оплаты, доставки и '
+                             f'другую необходимую информацию (допускается до 200 символов).',
                              reply_markup=get_fsm_back_button_keyboard())
 
 
 # ---------------------------------------------   LOAD DETAILS   ---------------------------------------------
 @exception_handler
 async def load_details_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load details, text: {message.text}, user id: {message.from_user.id}')
+    logger.debug(f'Invalid load details, text: {message.text}, user id: {message.from_user.id}')
     return await message.answer(f'Некорректно указана дополнительная информация (допускается до 200 символов),'
                                 f'попробуйте еще раз:',
                                 reply_markup=get_fsm_back_button_keyboard())
@@ -445,7 +440,7 @@ async def load_details_ignore(message: types.Message, state: FSMContext):
 
 @exception_handler
 async def load_details(message: Message, state: FSMContext):
-    logger.info(f'Load details, text: {message.text}. user id: {message.from_user.id}')
+    logger.debug(f'Load details, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
             details = message.text
@@ -455,21 +450,21 @@ async def load_details(message: Message, state: FSMContext):
 
         await FSMAnnouncement.next()
         await message.answer(f'Дополнительная информация:\n {details}.\n\n'
-                             f'Приложите фото:',
+                             f'Приложите фото.',
                              reply_markup=get_fsm_photo_keyboard())
 
 
 # ---------------------------------------------   LOAD PHOTO   ---------------------------------------------
 @exception_handler
 async def load_photo_ignore(message: types.Message, state: FSMContext):
-    logger.info(f'Invalid load photo, text: {message.text}, user id: {message.from_user.id}')
-    return await message.answer(f'Некорректно указано изображение,\nпопробуйте еще раз:',
+    logger.debug(f'Invalid load photo, text: {message.text}, user id: {message.from_user.id}')
+    return await message.answer(f'Некорректно указано фото,\nпопробуйте еще раз:',
                                 reply_markup=get_fsm_photo_keyboard())
 
 
 @exception_handler
 async def load_photo(message: Message, state: FSMContext):
-    logger.info(f'Load photo, content: {message.photo}. user id: {message.from_user.id}')
+    logger.debug(f'Load photo, content: {message.photo}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text == 'Пропустить':
             photo = 'no_use'
@@ -479,7 +474,7 @@ async def load_photo(message: Message, state: FSMContext):
             data['photo'] = photo
 
         await FSMAnnouncement.next()
-        await message.answer(f'Формируем ваше объявление')
+        await message.answer(f'Поздравляю! Вы сформировали объявление.')
         result = await send_message(chat_id=message.from_user.id, data=data, keyboard=get_fsm_publish_keyboard)
         if result is False:
             raise Exception('Forming ad is unsuccessfully')
@@ -488,29 +483,29 @@ async def load_photo(message: Message, state: FSMContext):
 # ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
 @exception_handler
 async def publish(message: Message, state: FSMContext):
+    logger.debug(f'Load publish post, user id: {message.from_user.id}')
     async with state.proxy() as data:
         await state.finish()
         result = await send_message_to_channels(data=data)
         if result:
-            await message.answer(f'Поздравляю!\nВаше объявление опубликовано', reply_markup=get_main_keyboard())
+            await message.answer(f'Ваше объявление опубликовано.', reply_markup=get_main_keyboard())
         else:
             raise Exception('publish error')
 
 
-# ---------------------------------------------   FSM FINISH   -------------------------------------------------
-# @exception_handler
-# async def finish(message: Message, state: FSMContext):
-#     # await cm_start(message=message, state=state)
-#     await state.finish()
-#     await message.answer('Ваше объявление отправлено.', reply_markup=get_main_keyboard())
+async def reset_fsm(message: Message, state: FSMContext):
+    logger.debug(f'Reset FSM, state: {await state.get_state()}, user id: {message.from_user.id}')
+    await state.reset_state()
+    await message.answer("Добро пожаловать!", reply_markup=get_main_keyboard())
 
 
-# ---------------------------------------------   REGISTRY FSM   -------------------------------------------------
 def register_fsm(dp: Dispatcher):
     logger.info('Registration FSMAnnouncement handlers for user')
 
-    dp.register_message_handler(cm_start, commands=['post'], state=None)
-    dp.register_message_handler(cm_start, Text(equals='Опубликовать объявление'), state=None)
+    dp.register_message_handler(cancel_handler, Text(equals='Я передумал'), state='*')
+
+    dp.register_message_handler(reset_fsm, commands=['reset'], state='*')
+    dp.register_message_handler(cm_start, Text(equals='Создать объявление'), state=None)
     dp.register_message_handler(event_back_button, Text(equals=back_button_text), state=FSMAnnouncement.all_states)
 
     dp.register_message_handler(load_start, Text(equals='Поехали'), state=FSMAnnouncement.start)

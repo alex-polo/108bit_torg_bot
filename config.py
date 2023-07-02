@@ -1,5 +1,6 @@
 import os.path
 from dataclasses import dataclass
+from typing import List
 
 from environs import Env
 
@@ -29,7 +30,8 @@ class LoggerConfig:
 class TgBot:
     bot_name: str
     token: str
-    channel_id: list[int]
+    channel_id: List[int]
+    admin_ids: List[int]
 
 
 def load_logging_config(path: str) -> LoggerConfig:
@@ -51,4 +53,5 @@ def load_config(path: str = None) -> TgBot:
         bot_name=env.str("BOT_NAME"),
         token=env.str("BOT_TOKEN"),
         channel_id=list(map(int, env.list("CHANNEL_IDS"))),
+        admin_ids=list(map(int, env.list("ADMIN_IDS"))),
     )

@@ -11,7 +11,7 @@ def get_fsm_back_button_keyboard() -> ReplyKeyboardMarkup:
 
 def get_main_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    keyboard.add(KeyboardButton(text="Опубликовать объявление"))
+    keyboard.add(KeyboardButton(text="Создать объявление"))
     return keyboard
 
 
@@ -53,7 +53,6 @@ def get_fsm_publish_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(KeyboardButton(text="Опубликовать"))
     keyboard.add(KeyboardButton(text=back_button_text))
-    keyboard.add(KeyboardButton(text='Я передумал'))
     return keyboard
 
 
