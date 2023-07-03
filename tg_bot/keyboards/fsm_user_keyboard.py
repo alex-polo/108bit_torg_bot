@@ -42,6 +42,7 @@ def get_fsm_type_equipment_consumables_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     keyboard.insert(KeyboardButton(text='Системы безопасности'))
     keyboard.insert(KeyboardButton(text='Автоматика и КИПиА'))
+    keyboard.insert(KeyboardButton(text='Умный дом'))
     keyboard.insert(KeyboardButton(text='Электрика'))
     keyboard.insert(KeyboardButton(text='Телеком и связь'))
     keyboard.insert(KeyboardButton(text='Сервера, ПК, комплектующие'))
@@ -66,8 +67,8 @@ def get_fsm_salesman_keyboard() -> ReplyKeyboardMarkup:
 
 def get_fsm_payment_type_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    keyboard.insert(KeyboardButton(text='Наличные')),
-    keyboard.insert(KeyboardButton(text='Безналичные'))
+    keyboard.insert(KeyboardButton(text='Нал')),
+    keyboard.insert(KeyboardButton(text='Безнал'))
     keyboard.insert(KeyboardButton(text='Нал/Безнал'))
     keyboard.row(KeyboardButton(text=back_button_text))
     return keyboard

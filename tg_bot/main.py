@@ -46,7 +46,7 @@ def register_all_handlers(dp: Dispatcher):
 async def _on_startup(dp) -> None:
     # Задаем комманды для пользователей
     await dp.bot.set_my_commands([
-        types.BotCommand("reset", "Старт/перезагрузка бота"),
+        # types.BotCommand("reset", "Старт/перезагрузка бота"),
     ], scope=types.BotCommandScopeDefault())
 
     # Задаем комманды для админов
