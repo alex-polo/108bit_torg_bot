@@ -8,6 +8,7 @@ import aiogram.utils.markdown as fmt
 from loguru import logger
 
 from tg_bot.service.classes import FormatMessage
+from tg_bot.utils import point_deletion
 
 _BOT: Bot = Optional[None]
 _CHANNELS: List[int] = Optional[None]
@@ -25,16 +26,16 @@ def format_message(data: dict) -> FormatMessage:
 
     fmt_body_list = list()
     fmt_body_list.append(fmt.text(f'Количество: {data.get("count")} шт.'))
-    fmt_body_list.append(fmt.text(f'Состояние: {data.get("condition").lower()}'))
-    fmt_body_list.append(fmt.text(f'Представитель: {data.get("salesman").lower()}'))
-    fmt_body_list.append(fmt.text(f'Цена: {data.get("price")} руб.'))
-    fmt_body_list.append(fmt.text(f'Оплата: {data.get("payment_type").lower()}'))
+    fmt_body_list.append(fmt.text(f'Состояние: {data.get("condition").lower()}.'))
+    fmt_body_list.append(fmt.text(f'Представитель: {data.get("salesman").lower()}.'))
+    fmt_body_list.append(fmt.text(f'Цена за единицу: {data.get("price")} руб.'))
+    fmt_body_list.append(fmt.text(f'Оплата: {data.get("payment_type").lower()}.'))
     if data.get("sending_to_another_city") != 'no_use':
-        fmt_body_list.append(fmt.text(f'Отправка в другой город: {data.get("sending_to_another_city").lower()}'))
+        fmt_body_list.append(fmt.text(f'Отправка в другой город: {data.get("sending_to_another_city").lower()}.'))
     if data.get("email") != 'no_use':
-        fmt_body_list.append(fmt.text(f'Почта: {data.get("email").lower()}'))
-    fmt_body_list.append(fmt.text(f'Телефон: {data.get("phone")}'))
-    fmt_body_list.append(fmt.text(f'Подробнее: {data.get("details")}'))
+        fmt_body_list.append(fmt.text(f'Почта: {data.get("email").lower()}.'))
+    fmt_body_list.append(fmt.text(f'Телефон: {data.get("phone")}.'))
+    fmt_body_list.append(fmt.text(f'Подробнее: {data.get("details")}.'))
 
     fmt_header = fmt.text(*tags_list, sep="\n")
     fmt_body = fmt.text(*fmt_body_list, sep="\n")

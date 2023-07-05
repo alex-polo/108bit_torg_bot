@@ -39,12 +39,22 @@ def get_fsm_type_task_keyboard() -> ReplyKeyboardMarkup:
 
 
 def get_fsm_type_equipment_consumables_keyboard() -> ReplyKeyboardMarkup:
+<<<<<<< HEAD
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
     keyboard.row(KeyboardButton(text='Системы безопасности'), KeyboardButton(text='Автоматика и КИПиА'))
     keyboard.row(KeyboardButton(text='Электрика'),
                  KeyboardButton(text='Телеком и связь'),
                  KeyboardButton(text='Умный дом'))
     keyboard.row(KeyboardButton(text='Сервера, ПК, комплектующие'), KeyboardButton(text='Измерительное оборудование'))
+=======
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+    keyboard.insert(KeyboardButton(text='Системы безопасности'))
+    keyboard.insert(KeyboardButton(text='Автоматика и КИПиА'))
+    keyboard.insert(KeyboardButton(text='Умный дом'))
+    keyboard.insert(KeyboardButton(text='Электрика'))
+    keyboard.insert(KeyboardButton(text='Телеком и связь'))
+    keyboard.insert(KeyboardButton(text='Сервера, ПК, комплектующие'))
+>>>>>>> 16ed2d4c7df7c2b02899bdc5762150d489ecf4e6
     keyboard.row(KeyboardButton(text=back_button_text))
     return keyboard
 

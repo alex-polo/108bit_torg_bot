@@ -26,6 +26,8 @@ from tg_bot.keyboards import (
     get_fsm_email_keyboard, get_fsm_photo_keyboard
 )
 from tg_bot.service import format_message, send_message, send_message_to_channels
+from tg_bot.utils import point_deletion
+
 
 # dispatcher: Dispatcher = get_dispatcher()
 
@@ -139,7 +141,7 @@ async def load_city(message: Message, state: FSMContext):
     logger.debug(f'Load city, state: {await state.get_state()}, city: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
-            city = message.text.title()
+            city = point_deletion(message.text.title())
             data['city'] = city
         else:
             city = data['city']
@@ -208,7 +210,7 @@ async def load_vendor(message: Message, state: FSMContext):
     logger.debug(f'Load vendor, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
-            vendor = message.text
+            vendor = point_deletion(message.text.title())
             data['vendor'] = vendor
         else:
             vendor = data['vendor']
@@ -288,7 +290,7 @@ async def load_salesman(message: Message, state: FSMContext):
             salesman = data['salesman']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость (число в рублях).',
+    await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость за единицу (число в рублях).',
                          reply_markup=get_fsm_back_button_keyboard())
 
 
@@ -298,7 +300,7 @@ async def load_price_ignore(message: types.Message, state: FSMContext):
     logger.debug(f'Invalid price count, text: {message.text}, user id: {message.from_user.id}')
     return await message.reply('Неверно указана стоимость.\n'
                                'Число должно быть в диапозоне от 0 до 9999999:\n\n'
-                               'Укажите стоимость (число в рублях).',
+                               'Укажите стоимость за единицу (число в рублях).',
                                reply_markup=get_fsm_back_button_keyboard())
 
 
@@ -313,7 +315,7 @@ async def load_price(message: Message, state: FSMContext):
             price = data['price']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Указана стоимость: {price} руб.\n\nУкажите тип оплаты.',
+    await message.answer(f'Указана стоимость за единицу: {price} руб.\n\nУкажите тип оплаты.',
                          reply_markup=get_fsm_payment_type_keyboard())
 
 
@@ -391,7 +393,7 @@ async def load_email(message: Message, state: FSMContext):
             email = 'no_use'
             data['email'] = email
         elif message.text != back_button_text:
-            email = message.text
+            email = point_deletion(message.text)
             data['email'] = email
         else:
             email = data['email']
@@ -417,7 +419,7 @@ async def load_phone(message: Message, state: FSMContext):
     logger.debug(f'Load phone, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
-            phone = message.text
+            phone = point_deletion(message.text)
             data['phone'] = phone
         else:
             phone = data['phone']
@@ -443,7 +445,7 @@ async def load_details(message: Message, state: FSMContext):
     logger.debug(f'Load details, text: {message.text}. user id: {message.from_user.id}')
     async with state.proxy() as data:
         if message.text != back_button_text:
-            details = message.text
+            details = point_deletion(message.text)
             data['details'] = details
         else:
             details = data['details']
@@ -524,6 +526,7 @@ def register_fsm(dp: Dispatcher):
     dp.register_message_handler(load_type_equipment_consumables,
                                 lambda message: message.text == 'Системы безопасности' or
                                                 message.text == 'Автоматика и КИПиА' or
+                                                message.text == 'Умный дом' or
                                                 message.text == 'Электрика' or
                                                 message.text == 'Телеком и связь' or
                                                 message.text == 'Сервера, ПК, комплектующие' or
