@@ -527,6 +527,8 @@ def register_fsm(dp: Dispatcher):
                                                 message.text == 'Электрика' or
                                                 message.text == 'Телеком и связь' or
                                                 message.text == 'Сервера, ПК, комплектующие' or
+                                                message.text == 'Умный дом' or
+                                                message.text == 'Измерительное оборудование' or
                                                 message.text == back_button_text,
                                 content_types=types.ContentTypes.TEXT,
                                 state=FSMAnnouncement.type_equipment_consumables)
@@ -559,8 +561,8 @@ def register_fsm(dp: Dispatcher):
     dp.register_message_handler(load_price_ignore, state=FSMAnnouncement.price)
 
     dp.register_message_handler(load_payment_type,
-                                lambda message: message.text == 'Наличные' or
-                                                message.text == 'Безналичные' or
+                                lambda message: message.text == 'Нал' or
+                                                message.text == 'Безнал' or
                                                 message.text == 'Нал/Безнал',
                                 state=FSMAnnouncement.payment_type)
     dp.register_message_handler(load_payment_type_ignore, state=FSMAnnouncement.payment_type)
