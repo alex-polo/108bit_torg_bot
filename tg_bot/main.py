@@ -6,7 +6,6 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
 from loguru import logger
-# from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
 import tg_bot.service
 

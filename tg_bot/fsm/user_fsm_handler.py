@@ -5,7 +5,7 @@ from typing import Optional
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import Message
+from aiogram.types import Message, InputMediaPhoto
 from loguru import logger
 
 from tg_bot.fsm.classes import FSMAnnouncement
@@ -472,7 +472,10 @@ async def load_photo(message: Message, state: FSMContext):
             photo = 'no_use'
             data['photo'] = photo
         elif message.text != back_button_text:
+
             photo = message.photo[0].file_id
+            # await message.reply_media_group(media=media)
+            # photo = message.media_group_id
             data['photo'] = photo
 
         await FSMAnnouncement.next()
@@ -480,6 +483,8 @@ async def load_photo(message: Message, state: FSMContext):
         result = await send_message(chat_id=message.from_user.id, data=data, keyboard=get_fsm_publish_keyboard)
         if result is False:
             raise Exception('Forming ad is unsuccessfully')
+
+        # await types.ChatActions.upload_photo()
 
 
 # ---------------------------------------------   LOAD PUBLISH   -------------------------------------------------
@@ -592,8 +597,4 @@ def register_fsm(dp: Dispatcher):
     dp.register_message_handler(load_photo, content_types=types.ContentTypes.ANY, state=FSMAnnouncement.photo)
     dp.register_message_handler(load_photo_ignore, state=FSMAnnouncement.photo)
 
-    # @dispatcher.message_handler(lambda message: message.text == back_button_text, state=FSMAnnouncement.all_states)
-    # dp.register_message_handler(load_start, state=FSMAnnouncement.start)
-
     dp.register_message_handler(publish, state=FSMAnnouncement.publish)
-    # dp.register_message_handler(finish, state=FSMAnnouncement.finish)

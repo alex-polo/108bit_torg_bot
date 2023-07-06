@@ -3,8 +3,9 @@ import datetime
 import traceback
 from typing import Optional, List
 
-from aiogram import Bot
+from aiogram import Bot, types
 import aiogram.utils.markdown as fmt
+from aiogram.types import InputMediaPhoto, InputMedia
 from loguru import logger
 
 from tg_bot.service.classes import FormatMessage
@@ -54,10 +55,16 @@ async def send_message(chat_id: int, data: dict, keyboard) -> bool:
                                     text=message.text,
                                     reply_markup=keyboard())
         else:
-            await _BOT.send_photo(chat_id=chat_id,
-                                  photo=message.photo,
-                                  caption=message.text,
-                                  reply_markup=keyboard())
+
+            media = types.MediaGroup()
+            media.attach_photo(types.InputFile('1.jpg'), message.text)
+            # media.attach_photo(types.InputFile('2.jpg'))
+            # photo = InputMediaPhoto(media=media)
+            await _BOT.send_media_group(chat_id=chat_id, media=media)
+            # await _BOT.send_photo(chat_id=chat_id,
+            #                       photo=message.photo,
+            #                       caption=message.text,
+            #                       reply_markup=keyboard())
 
         return True
 
