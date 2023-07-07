@@ -56,6 +56,13 @@ def get_fsm_publish_keyboard() -> ReplyKeyboardMarkup:
     return keyboard
 
 
+def get_fsm_price_keyboard() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    keyboard.add(KeyboardButton(text="По договорённости"))
+    keyboard.add(KeyboardButton(text=back_button_text))
+    return keyboard
+
+
 def get_fsm_salesman_keyboard() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.insert(KeyboardButton(text='Компания'))

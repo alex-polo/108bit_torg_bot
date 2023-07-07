@@ -23,7 +23,7 @@ from tg_bot.keyboards import (
     get_fsm_back_button_keyboard,
     get_fsm_condition_keyboard,
     get_fsm_salesman_keyboard, get_fsm_payment_type_keyboard, get_fsm_sending_to_another_city_keyboard,
-    get_fsm_email_keyboard, get_fsm_photo_keyboard
+    get_fsm_email_keyboard, get_fsm_photo_keyboard, get_fsm_price_keyboard
 )
 from tg_bot.service import format_message, send_message, send_message_to_channels
 from tg_bot.utils import point_deletion
@@ -291,7 +291,7 @@ async def load_salesman(message: Message, state: FSMContext):
 
     await FSMAnnouncement.next()
     await message.answer(f'Выбранный представитель: {salesman}.\n\nУкажите стоимость за единицу (число в рублях).',
-                         reply_markup=get_fsm_back_button_keyboard())
+                         reply_markup=get_fsm_price_keyboard())
 
 
 # ---------------------------------------------   LOAD PRICE   -------------------------------------------------
@@ -301,7 +301,7 @@ async def load_price_ignore(message: types.Message, state: FSMContext):
     return await message.reply('Неверно указана стоимость.\n'
                                'Число должно быть в диапозоне от 0 до 9999999:\n\n'
                                'Укажите стоимость за единицу (число в рублях).',
-                               reply_markup=get_fsm_back_button_keyboard())
+                               reply_markup=get_fsm_price_keyboard())
 
 
 @exception_handler
@@ -315,8 +315,13 @@ async def load_price(message: Message, state: FSMContext):
             price = data['price']
 
     await FSMAnnouncement.next()
-    await message.answer(f'Указана стоимость за единицу: {price} руб.\n\nУкажите тип оплаты.',
-                         reply_markup=get_fsm_payment_type_keyboard())
+
+    if message.text == 'По договорённости':
+        answer_text = 'Выбрана оплата по договорённости'
+    else:
+        answer_text = f'Указана стоимость за единицу: {price} руб.\n\nУкажите тип оплаты.'
+
+    await message.answer(answer_text, reply_markup=get_fsm_payment_type_keyboard())
 
 
 # ---------------------------------------------   LOAD PAYMENT TYPE   -------------------------------------------------
@@ -468,6 +473,9 @@ async def load_photo_ignore(message: types.Message, state: FSMContext):
 async def load_photo(message: Message, state: FSMContext):
     logger.debug(f'Load photo, content: {message.photo}. user id: {message.from_user.id}')
     async with state.proxy() as data:
+        # message.photo #list
+        # message.media_group_id
+
         if message.text == 'Пропустить':
             photo = 'no_use'
             data['photo'] = photo
@@ -564,7 +572,8 @@ def register_fsm(dp: Dispatcher):
     dp.register_message_handler(load_salesman_ignore, state=FSMAnnouncement.salesman)
 
     dp.register_message_handler(load_price,
-                                lambda message: is_float(text=message.text) and (0 < float(message.text) < 9999999),
+                                lambda message: (is_float(text=message.text) and (0 < float(message.text) < 9999999))
+                                                or message.text == 'По договорённости',
                                 state=FSMAnnouncement.price)
     dp.register_message_handler(load_price_ignore, state=FSMAnnouncement.price)
 

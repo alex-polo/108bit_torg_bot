@@ -29,12 +29,19 @@ def format_message(data: dict) -> FormatMessage:
     fmt_body_list.append(fmt.text(f'Количество: {data.get("count")} шт.'))
     fmt_body_list.append(fmt.text(f'Состояние: {data.get("condition").lower()}.'))
     fmt_body_list.append(fmt.text(f'Представитель: {data.get("salesman").lower()}.'))
-    fmt_body_list.append(fmt.text(f'Цена за единицу: {data.get("price")} руб.'))
+    if data.get("price") == 'По договорённости':
+        fmt_body_list.append(fmt.text('Цена за единицу: по договорённости.'))
+    else:
+        fmt_body_list.append(fmt.text(f'Цена за единицу: {data.get("price")} руб.'))
+
     fmt_body_list.append(fmt.text(f'Оплата: {data.get("payment_type").lower()}.'))
+
     if data.get("sending_to_another_city") != 'no_use':
         fmt_body_list.append(fmt.text(f'Отправка в другой город: {data.get("sending_to_another_city").lower()}.'))
+
     if data.get("email") != 'no_use':
         fmt_body_list.append(fmt.text(f'Почта: {data.get("email").lower()}.'))
+
     fmt_body_list.append(fmt.text(f'Телефон: {data.get("phone")}.'))
     fmt_body_list.append(fmt.text(f'Подробнее: {data.get("details")}.'))
 
