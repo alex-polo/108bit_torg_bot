@@ -23,7 +23,8 @@ def format_message(data: dict) -> FormatMessage:
     tags_list.append(fmt.hbold('#Куплю' if data.get('type_task') == 'Купить' else '#Продам'))
     tags_list.append(fmt.hbold(f'#{data.get("city").replace(" ", "_")}'))
     tags_list.append(fmt.hbold(f'#{data.get("type_equipment_consumables").replace(",", "").replace(" ", "_")}'))
-    tags_list.append(fmt.hbold(f'#{data.get("vendor").replace(" ", "_")}'))
+    tags_list.append(fmt.hbold(f'#'
+                               f'{data.get("vendor").replace(" ", "_").replace("-", "_").title()}'))
 
     fmt_body_list = list()
     fmt_body_list.append(fmt.text(f'Количество: {data.get("count")} шт.'))
@@ -63,15 +64,15 @@ async def send_message(chat_id: int, data: dict, keyboard) -> bool:
                                     reply_markup=keyboard())
         else:
 
-            media = types.MediaGroup()
-            media.attach_photo(types.InputFile('1.jpg'), message.text)
+            # media = types.MediaGroup()
+            # media.attach_photo(types.InputFile('1.jpg'), message.text)
             # media.attach_photo(types.InputFile('2.jpg'))
             # photo = InputMediaPhoto(media=media)
-            await _BOT.send_media_group(chat_id=chat_id, media=media)
-            # await _BOT.send_photo(chat_id=chat_id,
-            #                       photo=message.photo,
-            #                       caption=message.text,
-            #                       reply_markup=keyboard())
+            # await _BOT.send_media_group(chat_id=chat_id, media=media)
+            await _BOT.send_photo(chat_id=chat_id,
+                                  photo=message.photo,
+                                  caption=message.text,
+                                  reply_markup=keyboard())
 
         return True
 
